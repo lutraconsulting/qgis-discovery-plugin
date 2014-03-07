@@ -18,4 +18,4 @@ This option would use a PostGIS configuration file that the plugin would read on
 
 This would enable a much simple UI that would allow for straight forward autocomplete searching with results displaying in a table.
 
-![Alt text](C:\Projects\PostGIS_Search_Tool\PostGIS_Search_Tool_Option1.png "Option 1: PostGIS Configuration File")
+!(PostGIS_Search_Tool_Option1.png "Option 1: PostGIS Configuration File")
