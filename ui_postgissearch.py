@@ -52,11 +52,8 @@ class Ui_PostGISSearch(object):
         self.tableView.setSelectionMode(QtGui.QTableView.SingleSelection)
         self.tableView.setSelectionBehavior(QtGui.QTableView.SelectRows)
         self.tableView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-<<<<<<< HEAD
         self.tableView.setAlternatingRowColors(True)
         self.tableView.horizontalHeader().setStretchLastSection(True)
-=======
->>>>>>> 16ee3d1452f9b6ae6ebbf1f03620b1d71d0e468d
         self.resultsLabel = QtGui.QLabel(PostGISSearch)
         self.resultsLabel.setGeometry(QtCore.QRect(20, 100, 46, 13))
         self.resultsLabel.setObjectName(_fromUtf8("resultsLabel"))
