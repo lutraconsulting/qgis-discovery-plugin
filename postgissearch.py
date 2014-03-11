@@ -34,7 +34,10 @@ from ConfigParser import SafeConfigParser
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
+<<<<<<< HEAD
 from qgis.core import QgsGeometry, QgsPoint
+=======
+>>>>>>> 16ee3d1452f9b6ae6ebbf1f03620b1d71d0e468d
 
 
 class PostGISSearch:
@@ -84,6 +87,25 @@ class PostGISSearch:
 
         except:
             iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL)
+<<<<<<< HEAD
+=======
+
+        parser = SafeConfigParser()
+
+        parser.read(fname)
+
+        self.postgisdatabase = parser.get('postgis', 'postgisdatabase')
+        self.postgisusername = parser.get('postgis', 'postgisusername')
+        self.postgispassword = parser.get('postgis', 'postgispassword')
+        self.postgishost = parser.get('postgis', 'postgishost')
+        self.postgisport = parser.get('postgis', 'postgisport')
+        self.postgisschema = parser.get('postgis', 'postgisschema')
+        self.postgistable = parser.get('postgis', 'postgistable')
+        self.postgiscolumn = parser.get('postgis', 'postgiscolumn')
+        self.postgisgeomname = parser.get('postgis', 'postgisgeomname')
+        self.searchmethod = parser.get('postgis', 'searchmethod')
+
+>>>>>>> 16ee3d1452f9b6ae6ebbf1f03620b1d71d0e468d
         # Create the dialog (after translation) and keep reference
         self.dlg = PostGISSearchDialog()
 
@@ -108,6 +130,7 @@ class PostGISSearch:
         self.iface.removeToolBarIcon(self.action)
 
     def cellClicked(self):
+<<<<<<< HEAD
 
         index = self.dlg.tableView.currentIndex()
 
@@ -152,6 +175,12 @@ class PostGISSearch:
         self.dlg.tableView.clearSelection()
 
         self.dlg.close()
+=======
+        iface.messageBar().pushMessage("Error", "We did get here", level=QgsMessageBar.INFO)
+        iface.messageBar().pushMessage("Error", "Got here", level=QgsMessageBar.CRITICAL)
+        #need to enter code here
+        #add code to go from row in table to QGISVectorLayer
+>>>>>>> 16ee3d1452f9b6ae6ebbf1f03620b1d71d0e468d
 
 
     def addPostGISLayer(self, string):
@@ -162,12 +191,20 @@ class PostGISSearch:
             # set database schema, table name, geometry column and optionaly
             # subset (WHERE clause)
             querystring = ("%" + string + "%")
+<<<<<<< HEAD
             sql = "select %s.*, ST_X(%s) as x, ST_Y(%s) as y from %s.%s WHERE LOWER(%s) LIKE LOWER('%s') LIMIT 1000"%(self.postgistable, self.postgisgeomname, self.postgisgeomname, self.postgisschema, self.postgistable, self.postgiscolumn, querystring)
+=======
+            sql = "select * from %s.%s WHERE %s LIKE '%s'"%(self.postgisschema, self.postgistable, self.postgiscolumn, querystring)
+>>>>>>> 16ee3d1452f9b6ae6ebbf1f03620b1d71d0e468d
 
             db = QSqlDatabase.addDatabase('QPSQL')
             # check to see if it is valid
             if db.isValid():
                 iface.messageBar().pushMessage("Error", "Successfully connected to database", level=QgsMessageBar.INFO)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 16ee3d1452f9b6ae6ebbf1f03620b1d71d0e468d
                 db.setHostName(uri.host())
                 db.setDatabaseName(uri.database())
                 db.setPort(int(uri.port()))
