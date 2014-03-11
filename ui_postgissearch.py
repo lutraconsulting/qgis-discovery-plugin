@@ -54,6 +54,7 @@ class Ui_PostGISSearch(object):
         self.tableView.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.tableView.setAlternatingRowColors(True)
         self.tableView.horizontalHeader().setStretchLastSection(True)
+        self.tableView.resizeColumnsToContents()
         self.resultsLabel = QtGui.QLabel(PostGISSearch)
         self.resultsLabel.setGeometry(QtCore.QRect(20, 100, 46, 13))
         self.resultsLabel.setObjectName(_fromUtf8("resultsLabel"))
