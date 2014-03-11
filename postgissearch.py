@@ -59,6 +59,7 @@ class PostGISSearch:
 
         fname = os.path.join(plugin_path, "postgis.ini")
 
+<<<<<<< HEAD
         if os.path.exists(fname):
             iface.messageBar().pushMessage("Error", "Found config file", level=QgsMessageBar.INFO)
 
@@ -83,6 +84,24 @@ class PostGISSearch:
 
         except:
             iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL)
+=======
+
+        parser = SafeConfigParser()
+
+        parser.read(fname)
+
+        self.postgisdatabase = parser.get('postgis', 'postgisdatabase')
+        self.postgisusername = parser.get('postgis', 'postgisusername')
+        self.postgispassword = parser.get('postgis', 'postgispassword')
+        self.postgishost = parser.get('postgis', 'postgishost')
+        self.postgisport = parser.get('postgis', 'postgisport')
+        self.postgisschema = parser.get('postgis', 'postgisschema')
+        self.postgistable = parser.get('postgis', 'postgistable')
+        self.postgiscolumn = parser.get('postgis', 'postgiscolumn')
+        self.postgisgeomname = parser.get('postgis', 'postgisgeomname')
+        self.searchmethod = parser.get('postgis', 'searchmethod')
+
+>>>>>>> 4e2dfccd671f57cd01f86b4bc6aa72d46d3bb991
         # Create the dialog (after translation) and keep reference
         self.dlg = PostGISSearchDialog()
 
@@ -107,7 +126,11 @@ class PostGISSearch:
         self.iface.removeToolBarIcon(self.action)
 
     def cellClicked(self):
+<<<<<<< HEAD
         iface.messageBar().pushMessage("Error", "We did get here", level=QgsMessageBar.INFO)
+=======
+        iface.messageBar().pushMessage("Error", "Got here", level=QgsMessageBar.CRITICAL)
+>>>>>>> 4e2dfccd671f57cd01f86b4bc6aa72d46d3bb991
         #need to enter code here
         #add code to go from row in table to QGISVectorLayer
 
@@ -125,7 +148,10 @@ class PostGISSearch:
             db = QSqlDatabase.addDatabase('QPSQL')
             # check to see if it is valid
             if db.isValid():
+<<<<<<< HEAD
                 iface.messageBar().pushMessage("Error", "Successfully connected to database", level=QgsMessageBar.INFO)
+=======
+>>>>>>> 4e2dfccd671f57cd01f86b4bc6aa72d46d3bb991
                 db.setHostName(uri.host())
                 db.setDatabaseName(uri.database())
                 db.setPort(int(uri.port()))
@@ -138,11 +164,14 @@ class PostGISSearch:
                     self.dlg.tableView.setModel(self.projectModel)
                     self.dlg.tableView.selectionModel().currentChanged.connect(self.cellClicked)
                     self.dlg.tableView.clicked.connect(self.cellClicked)
+<<<<<<< HEAD
                 else:
                     iface.messageBar().pushMessage("Error", "Cannot search database", level=QgsMessageBar.CRITICAL)
 
             else:
                 iface.messageBar().pushMessage("Error", "DB not valid", level=QgsMessageBar.CRITICAL)
+=======
+>>>>>>> 4e2dfccd671f57cd01f86b4bc6aa72d46d3bb991
 
     # run method that performs all the real work
     def run(self):
