@@ -25,7 +25,7 @@ from PyQt4.QtGui import *
 from qgis.core import *
 from PyQt4.QtSql import *
 # Initialize Qt resources from file resources.py
-import resources_rc
+import resources
 # Import the code for the dialog
 from postgissearchdialog import PostGISSearchDialog
 import os.path
@@ -94,7 +94,7 @@ class PostGISSearch:
     def initGui(self):
         # Create action that will start plugin configuration
         self.action = QAction(
-            QIcon(":/plugins/postgissearch/icon.png"),
+            QIcon(":/plugins/postgissearch/postgissearch_logo.png"),
             u"PostGIS Search", self.iface.mainWindow())
         # connect the action to the run method
         self.action.triggered.connect(self.run)

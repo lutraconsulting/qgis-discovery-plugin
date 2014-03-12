@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/plugins/postgissearch" >
-        <file>icon.png</file>
+        <file>postgissearch_logo.png</file>
     </qresource>
 </RCC>

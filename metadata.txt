@@ -29,7 +29,7 @@ tags=PostGIS, Search
 homepage=
 tracker=
 repository=https://github.com/tjmgis/PostGISSearch
-icon=icon.png
+icon=postgissearch_logo.png
 # experimental flag
 experimental=True
 
