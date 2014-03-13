@@ -36,7 +36,8 @@ class PostGISSearchDialog(QtGui.QDialog, Ui_PostGISSearch):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
-        self.setupUi(self)
+        self.ui = Ui_PostGISSearch()
+        self.ui.setupUi(self)
 
 
 

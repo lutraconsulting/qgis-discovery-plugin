@@ -37,7 +37,7 @@ from qgis.utils import *
 from qgis.core import QgsGeometry, QgsPoint
 
 
-class PostGISSearch:
+class PostGISSearch():
 
     def __init__(self, iface):
         # Save reference to the QGIS interface
@@ -62,10 +62,8 @@ class PostGISSearch:
 
         if os.path.exists(fname):
             pass
-
         else:
             iface.messageBar().pushMessage("Error", "No config file found", level=QgsMessageBar.CRITICAL, duration=5)
-
 
         parser = SafeConfigParser()
 
@@ -82,14 +80,13 @@ class PostGISSearch:
             self.postgisdisplaycolumn = parser.get('postgis', 'postgisdisplaycolumn')
             self.postgisgeomname = parser.get('postgis', 'postgisgeomname')
             self.searchmethod = parser.get('postgis', 'searchmethod')
-
         except:
             iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL, duration=5)
         # Create the dialog (after translation) and keep reference
         self.dlg = PostGISSearchDialog()
 
-        #self.connect(self.dlg.self.searchText, SIGNAL("triggered()"), self.addPostGISLayer)
-        self.dlg.searchText.textChanged.connect(self.addPostGISLayer)
+
+
 
     def initGui(self):
         # Create action that will start plugin configuration
@@ -98,6 +95,8 @@ class PostGISSearch:
             u"PostGIS Search", self.iface.mainWindow())
         # connect the action to the run method
         self.action.triggered.connect(self.run)
+
+        self.dlg.ui.searchText.textChanged.connect(self.addPostGISLayer)
 
         # Add toolbar button and menu item
         self.iface.addToolBarIcon(self.action)
@@ -109,46 +108,44 @@ class PostGISSearch:
         self.iface.removeToolBarIcon(self.action)
 
     def cellClicked(self):
-
-        index = self.dlg.tableView.currentIndex()
-
-        rownumber = index.row()
-
-        hmodel = self.dlg.tableView.horizontalHeader().model()
-        for column in range(hmodel.columnCount()):
-            if hmodel.headerData(column, Qt.Horizontal) == "x":
-                xcolumn = column
-
-            elif hmodel.headerData(column, Qt.Horizontal) == "y":
-                ycolumn = column
-
-            elif hmodel.headerData(column, Qt.Horizontal) == self.postgisdisplaycolumn:
-                descriptioncolumn = column
-
-        x = self.projectModel.index(rownumber, xcolumn).data()
-        y = self.projectModel.index(rownumber, ycolumn).data()
-        description = self.projectModel.index(rownumber, descriptioncolumn).data()
-
-        layer =  QgsVectorLayer("Point",description,"memory")
-        QgsMapLayerRegistry.instance().addMapLayer(layer)
-        feature = QgsFeature()
-        feature.setGeometry( QgsGeometry.fromPoint(QgsPoint(x,y)) )
-
-        layer.startEditing()
-        layer.addFeature(feature, True)
-        layer.commitChanges()
-
-        iface.mapCanvas().setExtent(QgsRectangle(x,y,x,y))
-        iface.mapCanvas().zoomScale(10000)
         iface.mapCanvas().refresh()
 
-        self.dlg.searchText.setText("")
+        if self.dlg.ui.tableView.currentIndex():
+            index = self.dlg.ui.tableView.currentIndex().row()
 
-        self.projectModel.clear()
+            self.x = self.projectModel.record(index).value("x")
+            self.y = self.projectModel.record(index).value("y")
+            self.description = self.projectModel.record(index).value(self.postgisdisplaycolumn)
 
-        self.dlg.tableView.clearSelection()
+        self.pinLayer =  QgsVectorLayer(
+              "Point?crs=epsg:27700&field=Description:string(120)&field=X_Coordinate:double&field=Y_Coordinate:double&index=yes",
+              self.description,
+              "memory")
+        self.provider = self.pinLayer.dataProvider()
+        QgsMapLayerRegistry.instance().addMapLayer(self.pinLayer)
+
+        feature = QgsFeature()
+        feature.setGeometry(QgsGeometry.fromPoint(QgsPoint(self.x,self.y)))
+        if QGis.QGIS_VERSION_INT > 10800:
+            feature.setAttributes([self.description, self.x, self.y])
+            self.pinLayer.startEditing()
+            self.pinLayer.addFeature(feature, True)
+            self.pinLayer.commitChanges()
+        else:
+            feature.setAttributeMap( {0 : QVariant(self.description),
+                1 : QVariant(self.x),
+                2 : QVariant(self.y)})
+            self.provider.addFeatures([feature])
+            self.pinLayer.updateExtents()
+
+        canvas = self.iface.mapCanvas()
+        scale = 1200
+        rect = QgsRectangle(float(self.x)-scale,float(self.y)-scale,float(self.x)+scale,float(self.y)+scale)
+        canvas.setExtent(rect)
+        canvas.refresh()
 
         self.dlg.close()
+
 
 
     def addPostGISLayer(self, string):
@@ -168,23 +165,25 @@ class PostGISSearch:
             else:
                 iface.messageBar().pushMessage("Error", "Wrong search method declared in config file", level=QgsMessageBar.CRITICAL, duration=5)
 
-            db = QSqlDatabase.addDatabase('QPSQL')
+            self.db = QSqlDatabase.addDatabase('QPSQL')
+
             # check to see if it is valid
-            if db.isValid():
-                iface.messageBar().pushMessage("Info", "Successfully connected to database", level=QgsMessageBar.INFO, duration=3)
-                db.setHostName(uri.host())
-                db.setDatabaseName(uri.database())
-                db.setPort(int(uri.port()))
-                db.setUserName(uri.username())
-                db.setPassword(uri.password())
+            if self.db.isValid():
+                #iface.messageBar().pushMessage("Info", "Successfully connected to database", level=QgsMessageBar.INFO, duration=3)
+                self.db.setHostName(uri.host())
+                self.db.setDatabaseName(uri.database())
+                self.db.setPort(int(uri.port()))
+                self.db.setUserName(uri.username())
+                self.db.setPassword(uri.password())
                 # open (create) the connection
-                if db.open():
+                if self.db.open():
                     self.projectModel = QSqlQueryModel()
-                    self.projectModel.setQuery(sql,db)
-                    self.dlg.tableView.setModel(self.projectModel)
-                    self.dlg.tableView.resizeColumnsToContents()
-                    self.dlg.tableView.selectionModel().currentChanged.connect(self.cellClicked)
-                    self.dlg.tableView.clicked.connect(self.cellClicked)
+                    self.projectModel.setQuery(sql,self.db)
+                    self.dlg.ui.tableView.setModel(self.projectModel)
+                    self.db.close()
+                    self.db.removeDatabase('QPSQL')
+                    self.dlg.ui.tableView.resizeColumnsToContents()
+                    self.dlg.ui.tableView.selectionModel().currentChanged.connect(self.cellClicked)
                 else:
                     iface.messageBar().pushMessage("Error", "Cannot open search on the database", level=QgsMessageBar.CRITICAL, duration=5)
 
@@ -202,3 +201,6 @@ class PostGISSearch:
             # do something useful (delete the line containing pass and
             # substitute with your code)
             pass
+
+if __name__ == "__main__":
+    pass
