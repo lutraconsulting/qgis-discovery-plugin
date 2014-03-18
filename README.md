@@ -10,33 +10,11 @@ Before enabling the plugin in QGIS you will need to configure the PostGIS Search
 
 In the PostGIS Search Plugin directory there is a postgis.ini configuration file. Open this in a text editor and you should see the following:
 
-[postgis]
-postgisdatabase =
-postgisusername =
-postgispassword =
-postgishost =
-postgisport =
-postgisschema =
-postgistable =
-postgissearchcolumn =
-postgisdisplaycolumn =
-postgisgeomname =
-searchmethod =
+![PostGIS ini](postgis_ini1.png "postgis_ini file setup")
 
 Add in the relevent details of your setup, for example:
 
-[postgis]
-postgisdatabase = data
-postgisusername = postgres
-postgispassword = password
-postgishost = localhost
-postgisport = 5432
-postgisschema = public
-postgistable = locations
-postgissearchcolumn = name
-postgisdisplaycolumn = name
-postgisgeomname = geom
-searchmethod = SQL
+![PostGIS ini2](postgis_ini2.png "postgis_ini file setup")
 
 Save the postgis.ini file and then launch QGIS 2.x
 
@@ -55,10 +33,10 @@ Click on one of the results and the location should be added to the map as a tem
 #Thank Yous#
 I would like to thank the following people for their support and testing during development.
 
--Matt Travis
--Simon Miles
--Ross McDonald
--Jonathan Moules
+- Matt Travis
+- Simon Miles
+- Ross McDonald
+- Jonathan Moules
 
 
 #FTS - Full Text Search#
@@ -70,13 +48,13 @@ I found some great blog posts that helped me understand FTS:
 
 My general method to use FTS is to do the following:
 
--ALTER TABLE your_table ADD COLUMN new_column_name tsvector;
--UPDATE your_table SET new_column_name = to_tsvector('english', column_where_data_is);
--CREATE INDEX index_name ON your_table USING GIN(new_column_name);
+- ALTER TABLE your_table ADD COLUMN new_column_name tsvector;
+- UPDATE your_table SET new_column_name = to_tsvector('english', column_where_data_is);
+- CREATE INDEX index_name ON your_table USING GIN(new_column_name);
 
 Then to search the new tsvector you need a different SQL query
 
--SELECT * FROM your_table WHERE new_column_name @@ plainto_tsquery('english', 'query_string')
+- SELECT * FROM your_table WHERE new_column_name @@ plainto_tsquery('english', 'query_string')
 
 For searching tables of more than 1 million records adding FTS is definitely worth it when your original queries us LIKE rather than '='.
 
