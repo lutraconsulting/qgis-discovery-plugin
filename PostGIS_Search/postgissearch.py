@@ -29,6 +29,7 @@ import resources
 # Import the code for the dialog
 from postgissearchdialog import PostGISSearchDialog
 import os.path
+import psycopg2
 from ConfigParser import SafeConfigParser
 
 from qgis.core import *
@@ -56,34 +57,193 @@ class PostGISSearch():
                 QCoreApplication.installTranslator(self.translator)
 
     def initGui(self):
+
+        # Create a new toolbar
+        self.tool_bar = self.iface.addToolBar('PostGIS Search')
+
+        # Add toolbar items
+        self.tool_bar.addWidget( QLabel(' Search for ') )
+        self.search_line_edit = QLineEdit()
+        self.search_line_edit.setMaximumWidth(512)
+        self.tool_bar.addWidget(self.search_line_edit)
+
+        # Set up the completer
+        self.completer = QCompleter( [] )  # Initialise with en empty list
+        self.completer.setCaseSensitivity( Qt.CaseInsensitive )
+        self.completer.setMaxVisibleItems( 20 )
+        self.completer.setModelSorting( QCompleter.UnsortedModel ) #  Sorting done in PostGIS
+        self.completer.setCompletionMode( QCompleter.UnfilteredPopupCompletion ) # Show all fetched possibilities
+        self.completer.activated[QModelIndex].connect(self.on_result_selected)
+        self.search_line_edit.setCompleter(self.completer)
+
         # Create action that will start plugin configuration
         self.action = QAction(
             QIcon(":/plugins/postgissearch/postgissearch_logo.png"),
             u"PostGIS Search", self.iface.mainWindow())
         # connect the action to the run method
         self.action.triggered.connect(self.run)
+        # self.tool_bar.addAction(self.action)
 
-        # Add toolbar button and menu item
-        self.iface.addToolBarIcon(self.action)
+        # Connect any signals
+        self.search_line_edit.textEdited.connect(self.on_search_text_changed)
+
+        # Add menu item
         self.iface.addPluginToMenu(u"&PostGIS Search", self.action)
 
+        # Search results
+        self.search_results = []
+
+        # Debug
+        # import pydevd; pydevd.settrace('localhost', port=5678)
+
     def unload(self):
+        # Disconnect any signals
+        self.completer.activated[QModelIndex].disconnect(self.on_result_selected)
+        self.search_line_edit.textEdited.disconnect(self.on_search_text_changed)
         # Remove the plugin menu item and icon
         self.iface.removePluginMenu(u"&PostGIS Search", self.action)
-        self.iface.removeToolBarIcon(self.action)
+        # Remove the new toolbar
+        self.tool_bar.clear()  # Clear all actions
+        self.iface.mainWindow().removeToolBar(self.tool_bar)
 
+    def clear_suggestions(self):
+        model = self.completer.model()
+        model.setStringList([])
 
-    # run method that performs all the real work
-    def run(self):
+    def on_search_text_changed(self, new_search_text):
+
+        # This function is called whenever the user modified the search text
+
+        if len(new_search_text) < 3:
+            # Clear any previous suggestions in case the user is 'backspacing'
+            self.clear_suggestions()
+            return
+
+        """
+            Open a database connection
+            Make the query, getting:
+                Joined columns (e.g. match in search column, county, country)
+                Point geometry
+                TODO: the bounding box grometry
+            Update the QStringListModel with these results
+            Store the other details in self.search_results
+            TODO: Implement a 'pause' so the search only gets kicked off round 0.5s after the user stopped typing
+
+            Spaces in queries
+                A query with spaces is executed as follows:
+                    'my query'
+                    ILIKE '%my%query%'
+
+            A note on spaces in postcodes
+                Postcodes must be stored in the DB without spaces:
+                    'DL10 4DQ' becomes 'DL104DQ'
+                This allows users to query with or without spaces
+                As wildcards are inserted at spaces, it doesn't matter whether the query is:
+                    'dl10 4dq'; or
+                    'dl104dq'
+        """
+
+        cur = self.get_db_cur()
+        #try:
+        wildcarded_search_string = ''
+        for part in new_search_text.split():
+            wildcarded_search_string += '%' + part
+        wildcarded_search_string += '%'
+        qDic = {'search_text': wildcarded_search_string}
+        query_text = """ SELECT
+                            ST_AsText(geom) AS geom,
+                            ST_SRID(geom) AS epsg,
+                     """
+        query_text += """"%s"
+                      """ % self.postgissearchcolumn
+        for display_column in self.postgisdisplaycolumn.split(','):
+            query_text += """ || CASE WHEN "%s" IS NOT NULL THEN
+                                    ', ' || "%s"
+                                ELSE
+                                    ''
+                                END
+                          """ % (display_column,display_column)
+        query_text += """ AS suggestion_string
+                      FROM
+                            "%s"."%s"
+                         WHERE
+                            "%s" ILIKE
+                      """ % (self.postgisschema, self.postgistable, self.postgissearchcolumn)
+        query_text += """   %(search_text)s
+                      """
+        query_text += """ORDER BY
+                            "%s"
+                        LIMIT 20
+                      """ % self.postgissearchcolumn
+
+        cur.execute(query_text, qDic)
+        #except:
+        #    raise NotImplementedError()
+
+        self.search_results = []
+        suggestions = []
+        for geom, epsg, suggestion_text in cur.fetchall():
+            self.search_results.append( (geom,epsg) )
+            suggestions.append(suggestion_text)
+
+        model = self.completer.model()
+        model.setStringList(suggestions)
+
+    def on_result_selected(self, result_index):
+        # What to do when the user makes a selection
+        geometry_text, src_epsg = self.search_results[result_index.row()]
+        location_geom = QgsGeometry.fromWkt(geometry_text)
+        canvas = self.iface.mapCanvas()
+        dst_srid = canvas.mapRenderer().destinationCrs().authid()
+        transform = QgsCoordinateTransform( QgsCoordinateReferenceSystem(src_epsg),
+                                            QgsCoordinateReferenceSystem(dst_srid))
+        # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
+        location_geom.transform(transform)
+        location_centroid = location_geom.centroid().asPoint()
+
+        # Adjust map canvas extent
+        zoom_method = 'Move and Zoom'
+        if zoom_method == 'Move and Zoom':
+            scale = 250
+            rect = QgsRectangle(location_centroid.x()-scale,
+                                location_centroid.y()-scale,
+                                location_centroid.x()+scale,
+                                location_centroid.y()+scale)
+            canvas.setExtent(rect)
+        elif zoom_method == 'Move':
+            current_extent = QgsGeometry.fromRect( self.iface.mapCanvas().extent() )
+            dx = location_centroid.x() - location_centroid.x()
+            dy = location_centroid.y() - location_centroid.y()
+            current_extent.translate(dx, dy)
+            canvas.setExtent(current_extent.boundingBox())
+        canvas.refresh()
+        self.clear_suggestions()
+        # FIXME
+        self.search_line_edit.clear()
+
+    def get_db_cur(self):
+        # Update details from ini file
+        self.re_read_ini()
+        if len(self.postgisusername) == 0:
+            dbConn = psycopg2.connect( database = self.postgisdatabase)
+        else:
+            dbConn = psycopg2.connect( database = self.postgisdatabase,
+                                       user = self.postgisusername,
+                                       password = self.postgispassword,
+                                       host = self.postgishost,
+                                       port = self.postgisport)
+        dbConn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        return dbConn.cursor()
+
+    def re_read_ini(self):
         #the following code reads the configuration file which setups the plugin to search in the correct database, table and method
         plugin_path = os.path.dirname(os.path.realpath(__file__))
 
         fname = os.path.join(plugin_path, "postgis.ini")
 
-        if os.path.exists(fname):
-            pass
-        else:
+        if not os.path.exists(fname):
             iface.messageBar().pushMessage("Error", "No config file found", level=QgsMessageBar.CRITICAL, duration=5)
+            return
 
         parser = SafeConfigParser()
 
@@ -102,8 +262,11 @@ class PostGISSearch():
             self.searchmethod = parser.get('postgis', 'searchmethod')
         except:
             iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL, duration=5)
+            return
 
-
+    # run method that performs all the real work
+    def run(self):
+        self.re_read_ini()
         #declare the dlg
         self.dlg = PostGISSearchDialog()
         # show the dialog
