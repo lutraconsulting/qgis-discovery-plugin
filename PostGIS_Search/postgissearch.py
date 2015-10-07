@@ -56,7 +56,19 @@ class PostGISSearch():
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
+        # Variables to facilitate delayed queries and database connection management
+        self.next_query_time = None
+        self.last_query_time = time.time()
+        self.db_conn = None
+        self.search_delay = 0.75  # s
+        self.query_text = ''
+        self.query_text = {}
+        self.db_idle_time = 60.0  # s
+
     def initGui(self):
+
+        # Read config
+        self.read_ini()
 
         # Create a new toolbar
         self.tool_bar = self.iface.addToolBar('PostGIS Search')
@@ -93,10 +105,17 @@ class PostGISSearch():
         # Search results
         self.search_results = []
 
+        # Set up a timer to periodically perform db queries as required
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.do_db_operations)
+        self.timer.start(100)
+
         # Debug
         # import pydevd; pydevd.settrace('localhost', port=5678)
 
     def unload(self):
+        # Stop timer
+        self.timer.stop()
         # Disconnect any signals
         self.completer.activated[QModelIndex].disconnect(self.on_result_selected)
         self.search_line_edit.textEdited.disconnect(self.on_search_text_changed)
@@ -143,7 +162,6 @@ class PostGISSearch():
                     'dl104dq'
         """
 
-        cur = self.get_db_cur()
         #try:
         wildcarded_search_string = ''
         for part in new_search_text.split():
@@ -176,9 +194,23 @@ class PostGISSearch():
                         LIMIT 20
                       """ % self.postgissearchcolumn
 
-        cur.execute(query_text, qDic)
-        #except:
-        #    raise NotImplementedError()
+        self.schedule_search(query_text, qDic)
+
+    def do_db_operations(self):
+        if self.next_query_time is not None and self.next_query_time < time.time():
+            # It's time to run a query
+            self.next_query_time = None  # Prevent this query from being repeated
+            self.last_query_time = time.time()
+            self.perform_search()
+        else:
+            # We're not performing a query, close the db connection if it's been open for > 60s
+            if time.time() > self.last_query_time + self.db_idle_time:
+                self.db_conn = None
+
+    def perform_search(self):
+
+        cur = self.get_db_cur()
+        cur.execute(self.query_text, self.query_dict)
 
         self.search_results = []
         suggestions = []
@@ -188,6 +220,13 @@ class PostGISSearch():
 
         model = self.completer.model()
         model.setStringList(suggestions)
+        self.completer.complete()
+
+    def schedule_search(self, query_text, query_dict):
+        # Update the search text and the time after which the query should be executed
+        self.query_text = query_text
+        self.query_dict = query_dict
+        self.next_query_time = time.time() + self.search_delay
 
     def on_result_selected(self, result_index):
         # What to do when the user makes a selection
@@ -222,20 +261,20 @@ class PostGISSearch():
         self.search_line_edit.clear()
 
     def get_db_cur(self):
-        # Update details from ini file
-        self.re_read_ini()
-        if len(self.postgisusername) == 0:
-            dbConn = psycopg2.connect( database = self.postgisdatabase)
-        else:
-            dbConn = psycopg2.connect( database = self.postgisdatabase,
-                                       user = self.postgisusername,
-                                       password = self.postgispassword,
-                                       host = self.postgishost,
-                                       port = self.postgisport)
-        dbConn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        return dbConn.cursor()
+        # Create a new new connection if required
+        if self.db_conn is None:
+            if len(self.postgisusername) == 0:
+                self.db_conn = psycopg2.connect( database = self.postgisdatabase)
+            else:
+                self.db_conn = psycopg2.connect( database = self.postgisdatabase,
+                                           user = self.postgisusername,
+                                           password = self.postgispassword,
+                                           host = self.postgishost,
+                                           port = self.postgisport)
+            self.db_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        return self.db_conn.cursor()
 
-    def re_read_ini(self):
+    def read_ini(self):
         #the following code reads the configuration file which setups the plugin to search in the correct database, table and method
         plugin_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -266,7 +305,7 @@ class PostGISSearch():
 
     # run method that performs all the real work
     def run(self):
-        self.re_read_ini()
+        self.read_ini()
         #declare the dlg
         self.dlg = PostGISSearchDialog()
         # show the dialog
