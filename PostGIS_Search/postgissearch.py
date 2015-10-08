@@ -57,11 +57,15 @@ class PostGISSearch:
                 QCoreApplication.installTranslator(self.translator)
 
         # Variables to facilitate delayed queries and database connection management
-        self.timer = QTimer()
+        self.db_timer = QTimer()
+        self.line_edit_timer = QTimer()
+        self.line_edit_timer.setSingleShot(True)
+        self.line_edit_timer.timeout.connect(self.reset_line_edit_after_move)
         self.next_query_time = None
         self.last_query_time = time.time()
         self.db_conn = None
         self.search_delay = 0.5  # s
+        self.query_sql = ''
         self.query_text = ''
         self.query_dict = {}
         self.db_idle_time = 60.0  # s
@@ -92,6 +96,7 @@ class PostGISSearch:
         self.completer.setModelSorting(QCompleter.UnsortedModel)  # Sorting done in PostGIS
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # Show all fetched possibilities
         self.completer.activated[QModelIndex].connect(self.on_result_selected)
+        self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
         self.search_line_edit.setCompleter(self.completer)
 
         # Create action that will start plugin configuration
@@ -112,17 +117,18 @@ class PostGISSearch:
         self.search_results = []
 
         # Set up a timer to periodically perform db queries as required
-        self.timer.timeout.connect(self.do_db_operations)
-        self.timer.start(100)
+        self.db_timer.timeout.connect(self.do_db_operations)
+        self.db_timer.start(100)
 
         # Debug
         # import pydevd; pydevd.settrace('localhost', port=5678)
 
     def unload(self):
         # Stop timer
-        self.timer.stop()
+        self.db_timer.stop()
         # Disconnect any signals
-        self.timer.timeout.disconnect(self.do_db_operations)
+        self.db_timer.timeout.disconnect(self.do_db_operations)
+        self.completer.highlighted[QModelIndex].disconnect(self.on_result_highlighted)
         self.completer.activated[QModelIndex].disconnect(self.on_result_selected)
         self.search_line_edit.textEdited.disconnect(self.on_search_text_changed)
         # Remove the plugin menu item and icon
@@ -138,6 +144,8 @@ class PostGISSearch:
     def on_search_text_changed(self, new_search_text):
 
         # This function is called whenever the user modified the search text
+
+        self.query_text = new_search_text
 
         if len(new_search_text) < 3:
             # Clear any previous suggestions in case the user is 'backspacing'
@@ -214,7 +222,7 @@ class PostGISSearch:
     def perform_search(self):
 
         cur = self.get_db_cur()
-        cur.execute(self.query_text, self.query_dict)
+        cur.execute(self.query_sql, self.query_dict)
 
         self.search_results = []
         suggestions = []
@@ -228,7 +236,7 @@ class PostGISSearch:
 
     def schedule_search(self, query_text, query_dict):
         # Update the search text and the time after which the query should be executed
-        self.query_text = query_text
+        self.query_sql = query_text
         self.query_dict = query_dict
         self.next_query_time = time.time() + self.search_delay
 
@@ -260,9 +268,14 @@ class PostGISSearch:
             current_extent.translate(dx, dy)
             canvas.setExtent(current_extent.boundingBox())
         canvas.refresh()
-        self.clear_suggestions()
         # FIXME
-        self.search_line_edit.clear()
+        self.line_edit_timer.start(0)
+
+    def on_result_highlighted(self, result_idx):
+        self.line_edit_timer.start(0)
+
+    def reset_line_edit_after_move(self):
+        self.search_line_edit.setText(self.query_text)
 
     def get_db_cur(self):
         # Create a new new connection if required
