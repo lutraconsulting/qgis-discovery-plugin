@@ -268,7 +268,6 @@ class PostGISSearch:
             current_extent.translate(dx, dy)
             canvas.setExtent(current_extent.boundingBox())
         canvas.refresh()
-        # FIXME
         self.line_edit_timer.start(0)
 
     def on_result_highlighted(self, result_idx):
