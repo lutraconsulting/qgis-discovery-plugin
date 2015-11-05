@@ -57,6 +57,26 @@ def eval_expression(expr_text, extra_data, default=None):
     return default if expr.hasEvalError() else res
 
 
+def bbox_str_to_rectangle(bbox_str):
+    """ Helper method to convert "xmin,ymin,xmax,ymax" to QgsRectangle - or return None on error
+    """
+    if bbox_str is None or len(bbox_str) == 0:
+        return None
+
+    coords = bbox_str.split(",")
+    if len(coords) != 4:
+        return None
+
+    try:
+        xmin = float(coords[0])
+        ymin = float(coords[1])
+        xmax = float(coords[2])
+        ymax = float(coords[3])
+        return QgsRectangle(xmin, ymin, xmax, ymax)
+    except ValueError:
+        return None
+
+
 class PostGISSearch:
 
     def __init__(self, _iface):
@@ -281,10 +301,15 @@ class PostGISSearch:
         # Adjust map canvas extent
         zoom_method = 'Move and Zoom'
         if zoom_method == 'Move and Zoom':
-            # compute target scale. If the result is 2000 this means the target scale is 1:2000
-            scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)
-            rect = canvas.mapSettings().extent()
-            rect.scale(scale_denom / canvas.scale(), location_centroid)
+            # with higher priority try to use exact bounding box to zoom to features (if provided)
+            bbox_str = eval_expression(self.bbox_expr, extra_data)
+            rect = bbox_str_to_rectangle(bbox_str)
+            if rect is None:
+                # bbox is not available - so let's just use defined scale
+                # compute target scale. If the result is 2000 this means the target scale is 1:2000
+                scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)
+                rect = canvas.mapSettings().extent()
+                rect.scale(scale_denom / canvas.scale(), location_centroid)
             canvas.setExtent(rect)
         elif zoom_method == 'Move':
             current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
@@ -342,9 +367,11 @@ class PostGISSearch:
             self.postgisgeomname = parser.get('postgis', 'postgisgeomname')
             self.searchmethod = parser.get('postgis', 'searchmethod')
 
-            # optional scale expression when zooming in to results
-            self.scale_expr = None
             self.extra_expr_columns = []
+            self.scale_expr = None
+            self.bbox_expr = None
+
+            # optional scale expression when zooming in to results
             try:
                 expr_text = parser.get('postgis', 'scaleexpr')
                 expr = QgsExpression(expr_text)
@@ -353,9 +380,23 @@ class PostGISSearch:
                                                    level=QgsMessageBar.WARNING)
                 else:
                     self.scale_expr = expr_text
-                    self.extra_expr_columns = expr.referencedColumns()
+                    self.extra_expr_columns += expr.referencedColumns()
             except NoOptionError:
                 pass # no worries - it is optional
+
+            # optional bbox expression when zooming in to results
+            try:
+                expr_text = parser.get('postgis', 'bboxexpr')
+                expr = QgsExpression(expr_text)
+                if expr.hasParserError():
+                    iface.messageBar().pushMessage("PostGIS Search", "Invalid bbox expression: " + expr.parserErrorString(),
+                                                   level=QgsMessageBar.WARNING)
+                else:
+                    self.bbox_expr = expr_text
+                    self.extra_expr_columns += expr.referencedColumns()
+            except NoOptionError:
+                pass # no worries - it is optional
+
         except StandardError:
             iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL,
                                            duration=5)
