@@ -250,11 +250,9 @@ class PostGISSearch:
         # Adjust map canvas extent
         zoom_method = 'Move and Zoom'
         if zoom_method == 'Move and Zoom':
-            scale = 250
-            rect = QgsRectangle(location_centroid.x()-scale,
-                                location_centroid.y()-scale,
-                                location_centroid.x()+scale,
-                                location_centroid.y()+scale)
+            scale_denom = 2000.  # this means the target scale is 1:2000
+            rect = canvas.mapSettings().extent()
+            rect.scale(scale_denom / canvas.scale(), location_centroid)
             canvas.setExtent(rect)
         elif zoom_method == 'Move':
             current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
