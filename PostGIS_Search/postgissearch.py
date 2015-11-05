@@ -23,14 +23,38 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+import types
 import os.path
 import psycopg2
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, NoOptionError
 
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from qgis.core import QgsGeometry
+
+
+def eval_expression(expr_text, extra_data, default=None):
+    """ Helper method to evaluate an expression. E.g.
+         eval_expression("1+a", {"a": 2}) will return 3
+    """
+    if expr_text is None or len(expr_text) == 0:
+        return default
+
+    flds = QgsFields()
+    for extra_col, extra_value in extra_data.iteritems():
+        if isinstance(extra_value, types.IntType):
+            t = QVariant.Int
+        elif isinstance(extra_value, types.FloatType):
+            t = QVariant.Double
+        else:
+            t = QVariant.String
+        flds.append(QgsField(extra_col, t))
+    f = QgsFeature(flds)
+    for extra_col, extra_value in extra_data.iteritems():
+        f[extra_col] = extra_value
+    expr = QgsExpression(expr_text)
+    res = expr.evaluate(f)
+    return default if expr.hasEvalError() else res
 
 
 class PostGISSearch:
@@ -188,7 +212,10 @@ class PostGISSearch:
                                     ''
                                 END
                           """ % (display_column, display_column)
-        query_text += """ AS suggestion_string
+        query_text += """ AS suggestion_string """
+        for extra_column in self.extra_expr_columns:
+            query_text += ', "%s"' % extra_column
+        query_text += """
                       FROM
                             "%s"."%s"
                          WHERE
@@ -221,8 +248,12 @@ class PostGISSearch:
 
         self.search_results = []
         suggestions = []
-        for geom, epsg, suggestion_text in cur.fetchall():
-            self.search_results.append((geom, epsg))
+        for row in cur.fetchall():
+            geom, epsg, suggestion_text = row[0], row[1], row[2]
+            extra_data = {}
+            for idx, extra_col in enumerate(self.extra_expr_columns):
+                extra_data[extra_col] = row[3+idx]
+            self.search_results.append((geom, epsg, extra_data))
             suggestions.append(suggestion_text)
 
         model = self.completer.model()
@@ -237,7 +268,7 @@ class PostGISSearch:
 
     def on_result_selected(self, result_index):
         # What to do when the user makes a selection
-        geometry_text, src_epsg = self.search_results[result_index.row()]
+        geometry_text, src_epsg, extra_data = self.search_results[result_index.row()]
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
         dst_srid = canvas.mapRenderer().destinationCrs().authid()
@@ -250,7 +281,8 @@ class PostGISSearch:
         # Adjust map canvas extent
         zoom_method = 'Move and Zoom'
         if zoom_method == 'Move and Zoom':
-            scale_denom = 2000.  # this means the target scale is 1:2000
+            # compute target scale. If the result is 2000 this means the target scale is 1:2000
+            scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)
             rect = canvas.mapSettings().extent()
             rect.scale(scale_denom / canvas.scale(), location_centroid)
             canvas.setExtent(rect)
@@ -309,7 +341,22 @@ class PostGISSearch:
             self.postgisdisplaycolumn = parser.get('postgis', 'postgisdisplaycolumn')
             self.postgisgeomname = parser.get('postgis', 'postgisgeomname')
             self.searchmethod = parser.get('postgis', 'searchmethod')
-        except:
+
+            # optional scale expression when zooming in to results
+            self.scale_expr = None
+            self.extra_expr_columns = []
+            try:
+                expr_text = parser.get('postgis', 'scaleexpr')
+                expr = QgsExpression(expr_text)
+                if expr.hasParserError():
+                    iface.messageBar().pushMessage("PostGIS Search", "Invalid scale expression: " + expr.parserErrorString(),
+                                                   level=QgsMessageBar.WARNING)
+                else:
+                    self.scale_expr = expr_text
+                    self.extra_expr_columns = expr.referencedColumns()
+            except NoOptionError:
+                pass # no worries - it is optional
+        except StandardError:
             iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL,
                                            duration=5)
             return
