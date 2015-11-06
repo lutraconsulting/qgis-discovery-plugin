@@ -19,18 +19,47 @@
  *                                                                         *
  ***************************************************************************/
 """
-# Import the PyQt and QGIS libraries
+
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from PyQt4 import uic
 
+import time
 import types
 import os.path
 import psycopg2
-from ConfigParser import SafeConfigParser, NoOptionError
 
 from qgis.core import *
 from qgis.gui import *
-from qgis.utils import *
+from qgis.utils import iface
+
+
+def get_postgres_connections():
+    """ Read PostgreSQL connection names from QSettings stored by QGIS
+    """
+    settings = QSettings()
+    settings.beginGroup(u"/PostgreSQL/connections/")
+    return settings.childGroups()
+
+
+def get_postgres_conn_info(selected):
+    """ Read PostgreSQL connection details from QSettings stored by QGIS
+    """
+    settings = QSettings()
+    settings.beginGroup(u"/PostgreSQL/connections/" + selected)
+    if not settings.contains("database"): # non-existent entry?
+        return {}
+
+    conn_info = {}
+    conn_info["host"] = settings.value("host", "", type=str)
+    conn_info["port"] = settings.value("port", 432, type=int)
+    conn_info["database"] = settings.value("database", "", type=str)
+    username = settings.value("username", "", type=str)
+    password = settings.value("password", "", type=str)
+    if len(username) != 0:
+        conn_info["user"] = username
+        conn_info["password"] = password
+    return conn_info
 
 
 def eval_expression(expr_text, extra_data, default=None):
@@ -113,18 +142,26 @@ class PostGISSearch:
         self.tool_bar = None
         self.search_line_edit = None
         self.completer = None
+        self.conn_info = {}
 
     def initGui(self):
 
         # Read config
-        self.read_ini()
+        self.read_config()
 
         # Create a new toolbar
         self.tool_bar = self.iface.addToolBar('PostGIS Search')
 
-        # Add toolbar items
-        self.tool_bar.addWidget(QLabel(' Search for '))
+        # Create action that will start plugin configuration
+        self.action_config = QAction(
+             QIcon(os.path.join(self.plugin_dir, "postgissearch_logo.png")),
+             u"Configure PostGIS Search", self.tool_bar)
+        self.action_config.triggered.connect(self.show_config_dialog)
+        self.tool_bar.addAction(self.action_config)
+
+        # Add search edit box
         self.search_line_edit = QLineEdit()
+        self.search_line_edit.setPlaceholderText('Search for...')
         self.search_line_edit.setMaximumWidth(512)
         self.tool_bar.addWidget(self.search_line_edit)
 
@@ -137,14 +174,6 @@ class PostGISSearch:
         self.completer.activated[QModelIndex].connect(self.on_result_selected)
         self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
         self.search_line_edit.setCompleter(self.completer)
-
-        # Create action that will start plugin configuration
-        # self.action = QAction(
-        #     QIcon(":/plugins/postgissearch/postgissearch_logo.png"),
-        #     u"PostGIS Search", self.iface.mainWindow())
-        # connect the action to the run method
-        # self.action.triggered.connect(self.run)
-        # self.tool_bar.addAction(self.action)
 
         # Connect any signals
         self.search_line_edit.textEdited.connect(self.on_search_text_changed)
@@ -329,79 +358,85 @@ class PostGISSearch:
     def get_db_cur(self):
         # Create a new new connection if required
         if self.db_conn is None:
-            if len(self.postgisusername) == 0:
-                self.db_conn = psycopg2.connect(database=self.postgisdatabase)
-            else:
-                self.db_conn = psycopg2.connect(database=self.postgisdatabase,
-                                                user=self.postgisusername,
-                                                password=self.postgispassword,
-                                                host=self.postgishost,
-                                                port=self.postgisport)
+            self.db_conn = psycopg2.connect(**self.conn_info)
             self.db_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         return self.db_conn.cursor()
 
-    def read_ini(self):
+    def read_config(self):
         # the following code reads the configuration file which setups the plugin to search in the correct database,
         # table and method
-        plugin_path = os.path.dirname(os.path.realpath(__file__))
 
-        fname = os.path.join(plugin_path, "postgis.ini")
+        settings = QSettings()
+        settings.beginGroup("/PostGISSearch")
+        connection = settings.value("connection", "", type=str)
+        self.postgisschema = settings.value("schema", "", type=str)
+        self.postgistable = settings.value("table", "", type=str)
+        self.postgissearchcolumn = settings.value("search_column", "", type=str)
+        self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
+        self.postgisgeomname = settings.value("geom_column", "", type=str)
+        scale_expr = settings.value("scale_expr", "", type=str)
+        bbox_expr = settings.value("bbox_expr", "", type=str)
 
-        if not os.path.exists(fname):
-            iface.messageBar().pushMessage("Error", "No config file found", level=QgsMessageBar.CRITICAL, duration=5)
+        self.db_conn = None
+        self.conn_info = get_postgres_conn_info(connection)
+        self.extra_expr_columns = []
+        self.scale_expr = None
+        self.bbox_expr = None
+
+        if len(self.conn_info) == 0:
+            iface.messageBar().pushMessage("PostGIS Search", "The database connection '%s' does not exist!" % connection,
+                                           level=QgsMessageBar.CRITICAL)
             return
 
-        parser = SafeConfigParser()
+        # optional scale expression when zooming in to results
+        if len(scale_expr) != 0:
+            expr = QgsExpression(scale_expr)
+            if expr.hasParserError():
+                iface.messageBar().pushMessage("PostGIS Search", "Invalid scale expression: " + expr.parserErrorString(),
+                                               level=QgsMessageBar.WARNING)
+            else:
+                self.scale_expr = scale_expr
+                self.extra_expr_columns += expr.referencedColumns()
 
-        try:
-            parser.read(fname)
-            self.postgisdatabase = parser.get('postgis', 'postgisdatabase')
-            self.postgisusername = parser.get('postgis', 'postgisusername')
-            self.postgispassword = parser.get('postgis', 'postgispassword')
-            self.postgishost = parser.get('postgis', 'postgishost')
-            self.postgisport = parser.get('postgis', 'postgisport')
-            self.postgisschema = parser.get('postgis', 'postgisschema')
-            self.postgistable = parser.get('postgis', 'postgistable')
-            self.postgissearchcolumn = parser.get('postgis', 'postgissearchcolumn')
-            self.postgisdisplaycolumn = parser.get('postgis', 'postgisdisplaycolumn')
-            self.postgisgeomname = parser.get('postgis', 'postgisgeomname')
-            self.searchmethod = parser.get('postgis', 'searchmethod')
-
-            self.extra_expr_columns = []
-            self.scale_expr = None
-            self.bbox_expr = None
-
-            # optional scale expression when zooming in to results
-            try:
-                expr_text = parser.get('postgis', 'scaleexpr')
-                expr = QgsExpression(expr_text)
-                if expr.hasParserError():
-                    iface.messageBar().pushMessage("PostGIS Search", "Invalid scale expression: " + expr.parserErrorString(),
-                                                   level=QgsMessageBar.WARNING)
-                else:
-                    self.scale_expr = expr_text
-                    self.extra_expr_columns += expr.referencedColumns()
-            except NoOptionError:
-                pass # no worries - it is optional
-
-            # optional bbox expression when zooming in to results
-            try:
-                expr_text = parser.get('postgis', 'bboxexpr')
-                expr = QgsExpression(expr_text)
-                if expr.hasParserError():
-                    iface.messageBar().pushMessage("PostGIS Search", "Invalid bbox expression: " + expr.parserErrorString(),
-                                                   level=QgsMessageBar.WARNING)
-                else:
-                    self.bbox_expr = expr_text
-                    self.extra_expr_columns += expr.referencedColumns()
-            except NoOptionError:
-                pass # no worries - it is optional
-
-        except StandardError:
-            iface.messageBar().pushMessage("Error", "Something wrong in the config file", level=QgsMessageBar.CRITICAL,
-                                           duration=5)
-            return
+        # optional bbox expression when zooming in to results
+        if len(bbox_expr) != 0:
+            expr = QgsExpression(bbox_expr)
+            if expr.hasParserError():
+                iface.messageBar().pushMessage("PostGIS Search", "Invalid bbox expression: " + expr.parserErrorString(),
+                                               level=QgsMessageBar.WARNING)
+            else:
+                self.bbox_expr = bbox_expr
+                self.extra_expr_columns += expr.referencedColumns()
 
 
-if __name__ == "__main__":
-    pass
+    def show_config_dialog(self):
+        ui = uic.loadUi(os.path.join(self.plugin_dir, 'config_dialog.ui'))
+
+        settings = QSettings()
+        settings.beginGroup("/PostGISSearch")
+
+        for conn in get_postgres_connections():
+            ui.cboConnection.addItem(conn)
+
+        idx = ui.cboConnection.findText(settings.value("connection", "", type=str))
+        ui.cboConnection.setCurrentIndex(idx)
+
+        ui.editSchema.setText(settings.value("schema", "", type=str))
+        ui.editTable.setText(settings.value("table", "", type=str))
+        ui.editSearchColumn.setText(settings.value("search_column", "", type=str))
+        ui.editDisplayColumns.setText(settings.value("display_columns", "", type=str))
+        ui.editGeomColumn.setText(settings.value("geom_column", "", type=str))
+        ui.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
+        ui.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
+
+        if ui.exec_():
+            settings.setValue("connection", ui.cboConnection.currentText())
+            settings.setValue("schema", ui.editSchema.text())
+            settings.setValue("table", ui.editTable.text())
+            settings.setValue("search_column", ui.editSearchColumn.text())
+            settings.setValue("display_columns", ui.editDisplayColumns.text())
+            settings.setValue("geom_column", ui.editGeomColumn.text())
+            settings.setValue("scale_expr", ui.editScaleExpr.text())
+            settings.setValue("bbox_expr", ui.editBboxExpr.text())
+
+            self.read_config()
