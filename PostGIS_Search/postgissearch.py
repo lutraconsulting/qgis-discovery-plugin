@@ -33,33 +33,8 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.utils import iface
 
-
-def get_postgres_connections():
-    """ Read PostgreSQL connection names from QSettings stored by QGIS
-    """
-    settings = QSettings()
-    settings.beginGroup(u"/PostgreSQL/connections/")
-    return settings.childGroups()
-
-
-def get_postgres_conn_info(selected):
-    """ Read PostgreSQL connection details from QSettings stored by QGIS
-    """
-    settings = QSettings()
-    settings.beginGroup(u"/PostgreSQL/connections/" + selected)
-    if not settings.contains("database"): # non-existent entry?
-        return {}
-
-    conn_info = {}
-    conn_info["host"] = settings.value("host", "", type=str)
-    conn_info["port"] = settings.value("port", 432, type=int)
-    conn_info["database"] = settings.value("database", "", type=str)
-    username = settings.value("username", "", type=str)
-    password = settings.value("password", "", type=str)
-    if len(username) != 0:
-        conn_info["user"] = username
-        conn_info["password"] = password
-    return conn_info
+import config_dialog
+import dbutils
 
 
 def eval_expression(expr_text, extra_data, default=None):
@@ -144,10 +119,8 @@ class PostGISSearch:
         self.completer = None
         self.conn_info = {}
 
-    def initGui(self):
 
-        # Read config
-        self.read_config()
+    def initGui(self):
 
         # Create a new toolbar
         self.tool_bar = self.iface.addToolBar('PostGIS Search')
@@ -188,6 +161,9 @@ class PostGISSearch:
         self.db_timer.timeout.connect(self.do_db_operations)
         self.db_timer.start(100)
 
+        # Read config
+        self.read_config()
+
         # Debug
         # import pydevd; pydevd.settrace('localhost', port=5678)
 
@@ -210,8 +186,14 @@ class PostGISSearch:
         model.setStringList([])
 
     def on_search_text_changed(self, new_search_text):
+        """
+        This function is called whenever the user modified the search text
 
-        # This function is called whenever the user modified the search text
+        1. Open a database connection
+        2. Make the query
+        3. Update the QStringListModel with these results
+        4. Store the other details in self.search_results
+        """
 
         self.query_text = new_search_text
 
@@ -220,64 +202,16 @@ class PostGISSearch:
             self.clear_suggestions()
             return
 
-        """
-            Open a database connection
-            Make the query, getting:
-                Joined columns (e.g. match in search column, county, country)
-                Point geometry
-                TODO: the bounding box grometry
-            Update the QStringListModel with these results
-            Store the other details in self.search_results
+        query_text, query_dict = dbutils.get_search_sql(
+                                    new_search_text,
+                                    self.postgisgeomcolumn,
+                                    self.postgissearchcolumn,
+                                    self.postgisdisplaycolumn,
+                                    self.extra_expr_columns,
+                                    self.postgisschema,
+                                    self.postgistable)
 
-            Spaces in queries
-                A query with spaces is executed as follows:
-                    'my query'
-                    ILIKE '%my%query%'
-
-            A note on spaces in postcodes
-                Postcodes must be stored in the DB without spaces:
-                    'DL10 4DQ' becomes 'DL104DQ'
-                This allows users to query with or without spaces
-                As wildcards are inserted at spaces, it doesn't matter whether the query is:
-                    'dl10 4dq'; or
-                    'dl104dq'
-        """
-
-        wildcarded_search_string = ''
-        for part in new_search_text.split():
-            wildcarded_search_string += '%' + part
-        wildcarded_search_string += '%'
-        q_dic = {'search_text': wildcarded_search_string}
-        query_text = """ SELECT
-                            ST_AsText(geom) AS geom,
-                            ST_SRID(geom) AS epsg,
-                     """
-        query_text += """"%s"
-                      """ % self.postgissearchcolumn
-        for display_column in self.postgisdisplaycolumn.split(','):
-            query_text += """ || CASE WHEN "%s" IS NOT NULL THEN
-                                    ', ' || "%s"
-                                ELSE
-                                    ''
-                                END
-                          """ % (display_column, display_column)
-        query_text += """ AS suggestion_string """
-        for extra_column in self.extra_expr_columns:
-            query_text += ', "%s"' % extra_column
-        query_text += """
-                      FROM
-                            "%s"."%s"
-                         WHERE
-                            "%s" ILIKE
-                      """ % (self.postgisschema, self.postgistable, self.postgissearchcolumn)
-        query_text += """   %(search_text)s
-                      """
-        query_text += """ORDER BY
-                            "%s"
-                        LIMIT 20
-                      """ % self.postgissearchcolumn
-
-        self.schedule_search(query_text, q_dic)
+        self.schedule_search(query_text, query_dict)
 
     def do_db_operations(self):
         if self.next_query_time is not None and self.next_query_time < time.time():
@@ -358,8 +292,7 @@ class PostGISSearch:
     def get_db_cur(self):
         # Create a new new connection if required
         if self.db_conn is None:
-            self.db_conn = psycopg2.connect(**self.conn_info)
-            self.db_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            self.db_conn = dbutils.get_connection(self.conn_info)
         return self.db_conn.cursor()
 
     def read_config(self):
@@ -373,20 +306,28 @@ class PostGISSearch:
         self.postgistable = settings.value("table", "", type=str)
         self.postgissearchcolumn = settings.value("search_column", "", type=str)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
-        self.postgisgeomname = settings.value("geom_column", "", type=str)
+        self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
 
+        self.make_enabled(False)   # assume the config is invalid first
         self.db_conn = None
-        self.conn_info = get_postgres_conn_info(connection)
+        self.conn_info = dbutils.get_postgres_conn_info(connection)
         self.extra_expr_columns = []
         self.scale_expr = None
         self.bbox_expr = None
+
+        if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
+           len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
+            #iface.messageBar().pushMessage("PostGIS Search", "Please configure the plugin", level=QgsMessageBar.INFO)
+            return
 
         if len(self.conn_info) == 0:
             iface.messageBar().pushMessage("PostGIS Search", "The database connection '%s' does not exist!" % connection,
                                            level=QgsMessageBar.CRITICAL)
             return
+
+        self.make_enabled(True)
 
         # optional scale expression when zooming in to results
         if len(scale_expr) != 0:
@@ -410,33 +351,12 @@ class PostGISSearch:
 
 
     def show_config_dialog(self):
-        ui = uic.loadUi(os.path.join(self.plugin_dir, 'config_dialog.ui'))
 
-        settings = QSettings()
-        settings.beginGroup("/PostGISSearch")
-
-        for conn in get_postgres_connections():
-            ui.cboConnection.addItem(conn)
-
-        idx = ui.cboConnection.findText(settings.value("connection", "", type=str))
-        ui.cboConnection.setCurrentIndex(idx)
-
-        ui.editSchema.setText(settings.value("schema", "", type=str))
-        ui.editTable.setText(settings.value("table", "", type=str))
-        ui.editSearchColumn.setText(settings.value("search_column", "", type=str))
-        ui.editDisplayColumns.setText(settings.value("display_columns", "", type=str))
-        ui.editGeomColumn.setText(settings.value("geom_column", "", type=str))
-        ui.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
-        ui.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
-
-        if ui.exec_():
-            settings.setValue("connection", ui.cboConnection.currentText())
-            settings.setValue("schema", ui.editSchema.text())
-            settings.setValue("table", ui.editTable.text())
-            settings.setValue("search_column", ui.editSearchColumn.text())
-            settings.setValue("display_columns", ui.editDisplayColumns.text())
-            settings.setValue("geom_column", ui.editGeomColumn.text())
-            settings.setValue("scale_expr", ui.editScaleExpr.text())
-            settings.setValue("bbox_expr", ui.editBboxExpr.text())
-
+        dlg = config_dialog.ConfigDialog()
+        if dlg.exec_():
+            dlg.write_config()
             self.read_config()
+
+    def make_enabled(self, enabled):
+        self.search_line_edit.setEnabled(enabled)
+        self.search_line_edit.setPlaceholderText("Search for..." if enabled else "Search disabled: check configuration")

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>446</width>
-    <height>402</height>
+    <height>331</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,20 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QComboBox" name="cboConnection"/>
+      <widget class="QComboBox" name="cboConnection">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="label_2">
@@ -34,7 +47,20 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QLineEdit" name="editSchema"/>
+      <widget class="QComboBox" name="cboSchema">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="label_3">
@@ -44,7 +70,20 @@
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QLineEdit" name="editTable"/>
+      <widget class="QComboBox" name="cboTable">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
      </item>
      <item row="3" column="0">
       <widget class="QLabel" name="label_6">
@@ -54,7 +93,20 @@
       </widget>
      </item>
      <item row="3" column="1">
-      <widget class="QLineEdit" name="editSearchColumn"/>
+      <widget class="QComboBox" name="cboSearchColumn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
      </item>
      <item row="4" column="0">
       <widget class="QLabel" name="label_4">
@@ -64,7 +116,40 @@
       </widget>
      </item>
      <item row="4" column="1">
-      <widget class="QLineEdit" name="editDisplayColumns"/>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QComboBox" name="cboDisplayColumn1">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+         <property name="insertPolicy">
+          <enum>QComboBox::NoInsert</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="cboDisplayColumn2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+         <property name="insertPolicy">
+          <enum>QComboBox::NoInsert</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item row="5" column="0">
       <widget class="QLabel" name="label_5">
@@ -74,7 +159,20 @@
       </widget>
      </item>
      <item row="5" column="1">
-      <widget class="QLineEdit" name="editGeomColumn"/>
+      <widget class="QComboBox" name="cboGeomColumn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
      </item>
      <item row="6" column="0">
       <widget class="QLabel" name="label_7">
@@ -99,6 +197,16 @@
     </layout>
    </item>
    <item>
+    <widget class="QLabel" name="lblMessage">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -110,6 +218,18 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>cboConnection</tabstop>
+  <tabstop>cboSchema</tabstop>
+  <tabstop>cboTable</tabstop>
+  <tabstop>cboSearchColumn</tabstop>
+  <tabstop>cboDisplayColumn1</tabstop>
+  <tabstop>cboDisplayColumn2</tabstop>
+  <tabstop>cboGeomColumn</tabstop>
+  <tabstop>editScaleExpr</tabstop>
+  <tabstop>editBboxExpr</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
