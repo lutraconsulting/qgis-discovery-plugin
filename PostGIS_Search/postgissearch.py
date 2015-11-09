@@ -119,6 +119,18 @@ class PostGISSearch:
         self.completer = None
         self.conn_info = {}
 
+        self.marker = QgsVertexMarker(iface.mapCanvas())
+        self.marker.setIconSize(15)
+        self.marker.setPenWidth(2)
+        self.marker.setColor(QColor(226,27,28)) #51,160,44))
+        self.marker.setZValue(11)
+        self.marker2 = QgsVertexMarker(iface.mapCanvas())
+        self.marker2.setIconSize(16)
+        self.marker2.setPenWidth(4)
+        self.marker2.setColor(QColor(255,255,255,200))
+        self.marker2.setZValue(10)
+        self.hide_marker()
+
 
     def initGui(self):
 
@@ -261,6 +273,9 @@ class PostGISSearch:
         location_geom.transform(transform)
         location_centroid = location_geom.centroid().asPoint()
 
+        # show temporary marker
+        self.show_marker(location_centroid)
+
         # Adjust map canvas extent
         zoom_method = 'Move and Zoom'
         if zoom_method == 'Move and Zoom':
@@ -360,3 +375,22 @@ class PostGISSearch:
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)
         self.search_line_edit.setPlaceholderText("Search for..." if enabled else "Search disabled: check configuration")
+
+    def show_marker(self, point):
+        for m in [self.marker, self.marker2]:
+            m.setCenter(point)
+            m.setOpacity(1.0)
+            m.setVisible(True)
+        QTimer.singleShot(4000, self.hide_marker)
+
+    def hide_marker(self):
+        opacity = self.marker.opacity()
+        if opacity > 0.:
+            # produce a fade out effect
+            opacity -= 0.1
+            self.marker.setOpacity(opacity)
+            self.marker2.setOpacity(opacity)
+            QTimer.singleShot(100, self.hide_marker)
+        else:
+            self.marker.setVisible(False)
+            self.marker2.setVisible(False)
