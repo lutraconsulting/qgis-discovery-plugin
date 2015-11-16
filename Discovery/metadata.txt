@@ -1,7 +1,7 @@
 [general]
 name=Discovery
 qgisMinimumVersion=2.0
-description=Provides search / gazetter functionality in QGIS using PostGIS-based data
+description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
 version=1.0
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk

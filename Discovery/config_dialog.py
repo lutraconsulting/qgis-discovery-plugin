@@ -32,6 +32,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         self.conn = None
 
+        self.buttonBox.button(QDialogButtonBox.Help).clicked.connect(self.show_help)
+
         settings = QSettings()
         settings.beginGroup("/Discovery")
 
@@ -137,3 +139,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             if len(txt) > 0:
                 lst.append(txt)
         return ",".join(lst)
+
+    def show_help(self):
+        QDesktopServices.openUrl(QUrl("http://www.lutraconsulting.co.uk/products/discovery/"))
