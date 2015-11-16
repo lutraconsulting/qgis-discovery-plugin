@@ -1,24 +1,17 @@
 # -*- coding: utf-8 -*-
-"""
-/***************************************************************************
- PostGISSearch
-                                 A QGIS plugin
- Plugin for searching data in PostGIS Database
-                              -------------------
-        begin                : 2014-03-07
-        copyright            : (C) 2014 by Tim Martin
-        email                : tjmgis@gmail.com
- ***************************************************************************/
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-"""
+# Discovery Plugin
+#
+# Copyright (C) 2015 Lutra Consulting
+# info@lutraconsulting.co.uk
+#
+# Thanks to Tim Martin of Ordnance Survey for his original PostGIS Search
+# plugin which inspired and formed the foundation of Discovery.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -81,23 +74,13 @@ def bbox_str_to_rectangle(bbox_str):
         return None
 
 
-class PostGISSearch:
+class DiscoveryPlugin:
 
     def __init__(self, _iface):
         # Save reference to the QGIS interface
         self.iface = _iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
-        # initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
-        locale_path = os.path.join(self.plugin_dir, 'i18n', 'postgissearch_{}.qm'.format(locale))
-
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-
-            if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
 
         # Variables to facilitate delayed queries and database connection management
         self.db_timer = QTimer()
@@ -135,12 +118,12 @@ class PostGISSearch:
     def initGui(self):
 
         # Create a new toolbar
-        self.tool_bar = self.iface.addToolBar('PostGIS Search')
+        self.tool_bar = self.iface.addToolBar('Discovery')
 
         # Create action that will start plugin configuration
         self.action_config = QAction(
-             QIcon(os.path.join(self.plugin_dir, "postgissearch_logo.png")),
-             u"Configure PostGIS Search", self.tool_bar)
+             QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
+             u"Configure Discovery", self.tool_bar)
         self.action_config.triggered.connect(self.show_config_dialog)
         self.tool_bar.addAction(self.action_config)
 
@@ -163,9 +146,6 @@ class PostGISSearch:
         # Connect any signals
         self.search_line_edit.textEdited.connect(self.on_search_text_changed)
 
-        # Add menu item
-        # self.iface.addPluginToMenu(u"&PostGIS Search", self.action)
-
         # Search results
         self.search_results = []
 
@@ -187,8 +167,6 @@ class PostGISSearch:
         self.completer.highlighted[QModelIndex].disconnect(self.on_result_highlighted)
         self.completer.activated[QModelIndex].disconnect(self.on_result_selected)
         self.search_line_edit.textEdited.disconnect(self.on_search_text_changed)
-        # Remove the plugin menu item and icon
-        # self.iface.removePluginMenu(u"&PostGIS Search", self.action)
         # Remove the new toolbar
         self.tool_bar.clear()  # Clear all actions
         self.iface.mainWindow().removeToolBar(self.tool_bar)
@@ -315,7 +293,7 @@ class PostGISSearch:
         # table and method
 
         settings = QSettings()
-        settings.beginGroup("/PostGISSearch")
+        settings.beginGroup("/Discovery")
         connection = settings.value("connection", "", type=str)
         self.postgisschema = settings.value("schema", "", type=str)
         self.postgistable = settings.value("table", "", type=str)
@@ -334,11 +312,11 @@ class PostGISSearch:
 
         if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
            len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
-            #iface.messageBar().pushMessage("PostGIS Search", "Please configure the plugin", level=QgsMessageBar.INFO)
+            #iface.messageBar().pushMessage("Discovery", "Please configure the plugin", level=QgsMessageBar.INFO)
             return
 
         if len(self.conn_info) == 0:
-            iface.messageBar().pushMessage("PostGIS Search", "The database connection '%s' does not exist!" % connection,
+            iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
                                            level=QgsMessageBar.CRITICAL)
             return
 
@@ -348,7 +326,7 @@ class PostGISSearch:
         if len(scale_expr) != 0:
             expr = QgsExpression(scale_expr)
             if expr.hasParserError():
-                iface.messageBar().pushMessage("PostGIS Search", "Invalid scale expression: " + expr.parserErrorString(),
+                iface.messageBar().pushMessage("Discovery", "Invalid scale expression: " + expr.parserErrorString(),
                                                level=QgsMessageBar.WARNING)
             else:
                 self.scale_expr = scale_expr
@@ -358,7 +336,7 @@ class PostGISSearch:
         if len(bbox_expr) != 0:
             expr = QgsExpression(bbox_expr)
             if expr.hasParserError():
-                iface.messageBar().pushMessage("PostGIS Search", "Invalid bbox expression: " + expr.parserErrorString(),
+                iface.messageBar().pushMessage("Discovery", "Invalid bbox expression: " + expr.parserErrorString(),
                                                level=QgsMessageBar.WARNING)
             else:
                 self.bbox_expr = bbox_expr

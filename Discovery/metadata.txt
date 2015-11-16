@@ -1,38 +1,21 @@
-# This file contains metadata for your plugin. Beginning
-# with version 1.8 this is the preferred way to supply information about a
-# plugin. The current method of embedding metadata in __init__.py will
-# be supported until version 2.0
-
-# This file should be included when you package your plugin.
-
-# Mandatory items:
-
-
 [general]
-name=PostGIS Search
+name=Discovery
 qgisMinimumVersion=2.0
-description=This plugin enables autcomplete searching of a PostGIS database. This plugin is useful for searching a database of locations or assets and zooming to that location. So users get the experience of autocomplete in QGIS.
-version=0.1
-author=Tim Martin
-email=tjmgis@gmail.com
-homepage=http://tjmgis.github.io/PostGISSearch/
-tracker=https://github.com/tjmgis/PostGISSearch/issues
-repository=https://github.com/tjmgis/PostGISSearch
-icon=postgissearch_logo.png
-# experimental flag
-experimental=True
+description=Provides search / gazetter functionality in QGIS using PostGIS-based data
+version=1.0
+author=Lutra Consulting
+email=info@lutraconsulting.co.uk
+homepage=http://www.lutraconsulting.co.uk/products/discovery/
+tracker=https://github.com/lutraconsulting/qgis-discovery-plugin/issues
+repository=https://github.com/lutraconsulting/qgis-discovery-plugin
+icon=discovery_logo.png
+about=The Discovery plugin adds search capability to QGIS. Its key features are:
+ - Connects directly to PostgreSQL / PostGIS (no reliance on web services)
+ - Auto-completion of results
+ - Flexible expression-based support for scales
+ - Can use multiple fields to display result context
+ - Simple GUI-based configuration
 
-# end of mandatory metadata
+changelog=1.0 - Initial release
 
-# Optional items:
-
-# Uncomment the following line and add your changelog entries:
-# changelog=
-
-# tags are comma separated with spaces allowed
-tags=PostGIS, Search
-
-
-# deprecated flag (applies to the whole plugin, not just a single version
-deprecated=False
-
+tags=PostGIS, search, gazetteer

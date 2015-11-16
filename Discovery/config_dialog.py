@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+
+# Discovery Plugin
+#
+# Copyright (C) 2015 Lutra Consulting
+# info@lutraconsulting.co.uk
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 
 import os
 
@@ -22,7 +33,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.conn = None
 
         settings = QSettings()
-        settings.beginGroup("/PostGISSearch")
+        settings.beginGroup("/Discovery")
 
         # connections
 
@@ -60,7 +71,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def init_combo_from_settings(self, cbo, settings_key):
         settings = QSettings()
-        settings.beginGroup("/PostGISSearch")
+        settings.beginGroup("/Discovery")
         name = settings.value(settings_key, "", type=str)
         self.set_combo_current_text(cbo, name)
 
@@ -106,7 +117,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def write_config(self):
 
         settings = QSettings()
-        settings.beginGroup("/PostGISSearch")
+        settings.beginGroup("/Discovery")
 
         settings.setValue("connection", self.cboConnection.currentText())
         settings.setValue("schema", self.cboSchema.currentText())
