@@ -1,7 +1,8 @@
 
 Discovery (QGIS plugin)
 =======================
-![Logo](https://raw.githubusercontent.com/lutraconsulting/qgis-discovery-plugin/master/Discovery/discovery_logo_64.png)
+
+<img align="right" src="https://raw.githubusercontent.com/lutraconsulting/qgis-discovery-plugin/master/Discovery/discovery_logo_64.png" alt="Logo">
 
 The Discovery plugin adds search capability to QGIS. Its key features are:
 
