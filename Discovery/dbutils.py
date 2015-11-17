@@ -126,8 +126,8 @@ def get_search_sql(search_text, geom_column, search_column, display_columns, ext
 
     query_text = """ SELECT
                         ST_AsText("%s") AS geom,
-                        ST_SRID(geom) AS epsg,
-                 """ % geom_column
+                        ST_SRID("%s") AS epsg,
+                 """ % (geom_column, geom_column)
     query_text += """"%s"
                   """ % search_column
     if len(display_columns) > 0:
