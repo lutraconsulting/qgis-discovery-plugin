@@ -128,7 +128,7 @@ class DiscoveryPlugin:
         self.tool_bar.addAction(self.action_config)
 
         # Add search edit box
-        self.search_line_edit = QLineEdit()
+        self.search_line_edit = QgsFilterLineEdit()
         self.search_line_edit.setPlaceholderText('Search for...')
         self.search_line_edit.setMaximumWidth(512)
         self.tool_bar.addWidget(self.search_line_edit)
