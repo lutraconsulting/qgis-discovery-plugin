@@ -99,7 +99,7 @@ def list_columns(cursor, schema, table):
     return sorted(names)
 
 
-def get_search_sql(search_text, geom_column, search_column, display_columns, extra_expr_columns, schema, table):
+def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table):
     """ Returns a tuple: (SQL query text, dictionary with values to replace variables with).
     """
 
@@ -128,17 +128,26 @@ def get_search_sql(search_text, geom_column, search_column, display_columns, ext
                         ST_AsText("%s") AS geom,
                         ST_SRID("%s") AS epsg,
                  """ % (geom_column, geom_column)
-    query_text += """"%s"
-                  """ % search_column
+    if echo_search_column:
+        query_column_selection_text = """"%s"
+                                      """ % search_column
+        suggestion_string_seperator = ', '
+    else:
+        query_column_selection_text = """''"""
+        suggestion_string_seperator = ''
     if len(display_columns) > 0:
         for display_column in display_columns.split(','):
-            query_text += """ || CASE WHEN "%s" IS NOT NULL THEN
-                                    ', ' || "%s"
-                                ELSE
-                                    ''
-                                END
-                          """ % (display_column, display_column)
-    query_text += """ AS suggestion_string """
+            query_column_selection_text += """ || CASE WHEN "%s" IS NOT NULL THEN
+                                                     '%s' || "%s"
+                                                 ELSE
+                                                     ''
+                                                 END
+                                           """ % (display_column, suggestion_string_seperator, display_column)
+            suggestion_string_seperator = ', '
+    query_column_selection_text += """ AS suggestion_string """
+    if query_column_selection_text.startswith("'', "):
+        query_column_selection_text = query_column_selection_text[4:]
+    query_text += query_column_selection_text
     for extra_column in extra_expr_columns:
         query_text += ', "%s"' % extra_column
     query_text += """

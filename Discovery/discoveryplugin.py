@@ -196,6 +196,7 @@ class DiscoveryPlugin:
                                     new_search_text,
                                     self.postgisgeomcolumn,
                                     self.postgissearchcolumn,
+                                    self.echosearchcolumn,
                                     self.postgisdisplaycolumn,
                                     self.extra_expr_columns,
                                     self.postgisschema,
@@ -298,6 +299,7 @@ class DiscoveryPlugin:
         self.postgisschema = settings.value("schema", "", type=str)
         self.postgistable = settings.value("table", "", type=str)
         self.postgissearchcolumn = settings.value("search_column", "", type=str)
+        self.echosearchcolumn = settings.value("echo_search_column", "", type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
         scale_expr = settings.value("scale_expr", "", type=str)

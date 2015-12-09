@@ -61,6 +61,12 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.init_combo_from_settings(self.cboSearchColumn, "search_column")
         self.init_combo_from_settings(self.cboGeomColumn, "geom_column")
 
+        echo_search_col = settings.value("echo_search_column", True, type=bool)
+        if echo_search_col:
+            self.cbEchoSearchColumn.setCheckState(Qt.Checked)
+        else:
+            self.cbEchoSearchColumn.setCheckState(Qt.Unchecked)
+
         columns = settings.value("display_columns", "", type=str)
         if len(columns) != 0:
             lst = columns.split(",")
@@ -125,6 +131,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue("schema", self.cboSchema.currentText())
         settings.setValue("table", self.cboTable.currentText())
         settings.setValue("search_column", self.cboSearchColumn.currentText())
+        settings.setValue("echo_search_column", self.cbEchoSearchColumn.isChecked())
         settings.setValue("display_columns", self.display_columns())
         settings.setValue("geom_column", self.cboGeomColumn.currentText())
         settings.setValue("scale_expr", self.editScaleExpr.text())
