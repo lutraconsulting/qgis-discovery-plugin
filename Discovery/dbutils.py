@@ -160,7 +160,7 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
                   """
     query_text += """ORDER BY
                         "%s"
-                    LIMIT 20
+                    LIMIT 1000
                   """ % search_column
 
     return query_text, query_dict

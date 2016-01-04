@@ -130,13 +130,13 @@ class DiscoveryPlugin:
         # Add search edit box
         self.search_line_edit = QgsFilterLineEdit()
         self.search_line_edit.setPlaceholderText('Search for...')
-        self.search_line_edit.setMaximumWidth(512)
+        self.search_line_edit.setMaximumWidth(768)
         self.tool_bar.addWidget(self.search_line_edit)
 
         # Set up the completer
         self.completer = QCompleter([])  # Initialise with en empty list
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.completer.setMaxVisibleItems(20)
+        self.completer.setMaxVisibleItems(1000)
         self.completer.setModelSorting(QCompleter.UnsortedModel)  # Sorting done in PostGIS
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # Show all fetched possibilities
         self.completer.activated[QModelIndex].connect(self.on_result_selected)

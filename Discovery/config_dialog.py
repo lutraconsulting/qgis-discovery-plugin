@@ -73,6 +73,12 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.set_combo_current_text(self.cboDisplayColumn1, lst[0])
             if len(lst) > 1:
                 self.set_combo_current_text(self.cboDisplayColumn2, lst[1])
+            if len(lst) > 2:
+                self.set_combo_current_text(self.cboDisplayColumn3, lst[2])
+            if len(lst) > 3:
+                self.set_combo_current_text(self.cboDisplayColumn4, lst[3])
+            if len(lst) > 4:
+                self.set_combo_current_text(self.cboDisplayColumn5, lst[4])
 
         self.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
         self.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
@@ -112,7 +118,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.cboTable.addItem(table)
 
     def populate_columns(self):
-        cbos = [self.cboSearchColumn, self.cboGeomColumn, self.cboDisplayColumn1, self.cboDisplayColumn2]
+        cbos = [self.cboSearchColumn, self.cboGeomColumn, self.cboDisplayColumn1, self.cboDisplayColumn2,
+                self.cboDisplayColumn3, self.cboDisplayColumn4, self.cboDisplayColumn5]
         for cbo in cbos:
             cbo.clear()
             cbo.addItem("")
@@ -141,7 +148,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         """ Make a string out of display columns, e.g. "column1,column2" or just "column1"
         """
         lst = []
-        for cbo in [self.cboDisplayColumn1, self.cboDisplayColumn2]:
+        for cbo in [self.cboDisplayColumn1, self.cboDisplayColumn2, self.cboDisplayColumn3, self.cboDisplayColumn4,
+                    self.cboDisplayColumn5]:
             txt = cbo.currentText()
             if len(txt) > 0:
                 lst.append(txt)
