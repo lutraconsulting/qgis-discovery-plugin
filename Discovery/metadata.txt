@@ -2,7 +2,7 @@
 name=Discovery
 qgisMinimumVersion=2.0
 description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
-version=1.2.0
+version=1.2.1
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -16,7 +16,8 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=1.2.0 - Added configuration entries for additional display columns
+changelog=1.2.1 - Minor bugfixes
+ <p>1.2.0 - Added configuration entries for additional display columns
  - Increased max results to 1000 (scrollbar now activates)
  - Increased width to 768px
  <p>1.1.0 - Inclusion of search column in results now optional
