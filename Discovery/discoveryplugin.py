@@ -107,12 +107,13 @@ class DiscoveryPlugin:
         self.marker.setPenWidth(2)
         self.marker.setColor(QColor(226,27,28)) #51,160,44))
         self.marker.setZValue(11)
+        self.marker.setVisible(False)
         self.marker2 = QgsVertexMarker(iface.mapCanvas())
         self.marker2.setIconSize(16)
         self.marker2.setPenWidth(4)
         self.marker2.setColor(QColor(255,255,255,200))
         self.marker2.setZValue(10)
-        self.hide_marker()
+        self.marker2.setVisible(False)
 
 
     def initGui(self):
