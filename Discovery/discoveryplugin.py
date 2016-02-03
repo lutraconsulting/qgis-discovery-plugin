@@ -119,6 +119,7 @@ class DiscoveryPlugin:
 
         # Create a new toolbar
         self.tool_bar = self.iface.addToolBar('Discovery')
+        self.tool_bar.setObjectName('Discovery_Plugin')
 
         # Create action that will start plugin configuration
         self.action_config = QAction(
