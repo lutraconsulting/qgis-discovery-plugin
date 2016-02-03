@@ -301,7 +301,7 @@ class DiscoveryPlugin:
         self.postgisschema = settings.value("schema", "", type=str)
         self.postgistable = settings.value("table", "", type=str)
         self.postgissearchcolumn = settings.value("search_column", "", type=str)
-        self.echosearchcolumn = settings.value("echo_search_column", "", type=bool)
+        self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
         scale_expr = settings.value("scale_expr", "", type=str)
