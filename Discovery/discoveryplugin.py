@@ -263,11 +263,10 @@ class DiscoveryPlugin:
             # with higher priority try to use exact bounding box to zoom to features (if provided)
             bbox_str = eval_expression(self.bbox_expr, extra_data)
             rect = bbox_str_to_rectangle(bbox_str)
-            # transform the rectangle in case of OTF projection
-            rect_geom = QgsGeometry.fromRect(rect)
-            rect_geom.transform(transform)
-            rect = rect_geom.boundingBox()
-            if rect is None:
+            if rect is not None:
+                # transform the rectangle in case of OTF projection
+                rect = transform.transformBoundingBox(rect)
+            else:
                 # bbox is not available - so let's just use defined scale
                 # compute target scale. If the result is 2000 this means the target scale is 1:2000
                 scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)

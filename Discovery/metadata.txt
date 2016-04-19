@@ -2,7 +2,7 @@
 name=Discovery
 qgisMinimumVersion=2.0
 description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
-version=1.2.2
+version=1.2.3
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -16,7 +16,9 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=1.2.2 - Minor bugfixes
+changelog=1.2.3 - Minor bugfixes
+ - Fixed regression from 1.2.2 with Python error if BBOX expression was not used
+ <p>1.2.2 - Minor bugfixes
  - Fixed issue (incorrect map location) seen when using BBOX expression with OTF projection
  <p>1.2.1 - Minor bugfixes
  <p>1.2.0 - Added configuration entries for additional display columns
