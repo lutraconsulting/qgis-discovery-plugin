@@ -83,6 +83,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
         self.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
 
+         # set validators so that user cannot type text into numeric line edits
+        self.displayTime.setValidator(QDoubleValidator(self.displayTime))
+        self.displayTime.setText("5")
+
+
     def init_combo_from_settings(self, cbo, settings_key):
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -143,6 +148,14 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue("geom_column", self.cboGeomColumn.currentText())
         settings.setValue("scale_expr", self.editScaleExpr.text())
         settings.setValue("bbox_expr", self.editBboxExpr.text())
+
+        if(self.timeCB.isChecked()):
+            settings.setValue("display_time", 100000)
+        else:
+            settings.setValue("display_time", float(self.displayTime.text())*1000)
+
+    def disable_display_time(self):
+        self.displayTime.setEnabled(not self.timeCB.isChecked())
 
     def display_columns(self):
         """ Make a string out of display columns, e.g. "column1,column2" or just "column1"
