@@ -309,7 +309,10 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
-        self.display_time = float(settings.value("display_time", "", type=str))*1000
+        try:
+            self.display_time = float(settings.value("display_time", "", type=str))*1000
+        except:
+            self.display_time = 5000
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
 
