@@ -150,9 +150,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue("bbox_expr", self.editBboxExpr.text())
 
         if(self.timeCB.isChecked()):
-            settings.setValue("display_time", 100000)
+            settings.setValue("display_time", "0")
         else:
-            settings.setValue("display_time", float(self.displayTime.text())*1000)
+            settings.setValue("display_time", self.displayTime.text())
 
     def disable_display_time(self):
         self.displayTime.setEnabled(not self.timeCB.isChecked())
