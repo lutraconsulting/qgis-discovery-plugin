@@ -83,6 +83,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
         self.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
 
+        self.timeCB.stateChanged.connect(self.disable_display_time)
+
 
 
     def init_combo_from_settings(self, cbo, settings_key):
