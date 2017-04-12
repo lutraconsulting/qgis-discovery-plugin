@@ -310,7 +310,10 @@ class DiscoveryPlugin:
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
         self.dont_hide_marker = settings.value("timer_checked", "", type=bool)
         if not self.dont_hide_marker:
-        	self.display_time = settings.value("display_time", type=int)
+        	try:
+        		self.display_time = settings.value("display_time", type=int)
+        	except TypeError:
+        		self.display_time = 5000
 
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
