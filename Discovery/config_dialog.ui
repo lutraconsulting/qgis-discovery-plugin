@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>448</width>
-    <height>610</height>
+    <width>483</width>
+    <height>537</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -249,21 +249,14 @@
    <item row="12" column="1">
     <widget class="QLineEdit" name="editBboxExpr"/>
    </item>
-   <item row="13" column="1">
+   <item row="14" column="0">
     <widget class="QCheckBox" name="timeCB">
-     <property name="text">
-      <string>Don't hide map marker</string>
-     </property>
-    </widget>
-   </item>
-   <item row="15" column="0">
-    <widget class="QLabel" name="label_9">
      <property name="text">
       <string>Auto-hide map marker after</string>
      </property>
     </widget>
    </item>
-   <item row="15" column="1">
+   <item row="14" column="1">
     <widget class="QSpinBox" name="displayTime">
      <property name="suffix">
       <string> seconds</string>
@@ -276,16 +269,6 @@
      </property>
     </widget>
    </item>
-   <item row="17" column="0" colspan="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
    <item row="16" column="0" colspan="2">
     <widget class="QLabel" name="lblMessage">
      <property name="sizePolicy">
@@ -293,6 +276,16 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item row="17" column="0" colspan="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>

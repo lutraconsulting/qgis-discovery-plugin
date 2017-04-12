@@ -308,8 +308,8 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
-        self.dont_hide_marker = settings.value("timer_checked", "", type=bool)
-        if not self.dont_hide_marker:
+        self.set_timer_checkbox = settings.value("timer_checked", "", type=bool)
+        if self.set_timer_checkbox:
         	try:
         		self.display_time = settings.value("display_time", type=int)
         	except TypeError:
@@ -378,7 +378,7 @@ class DiscoveryPlugin:
             m.setCenter(point)
             m.setOpacity(1.0)
             m.setVisible(True)
-        if self.dont_hide_marker:
+        if not self.set_timer_checkbox:
         	self.is_displayed = True
         else:
         	QTimer.singleShot(self.display_time, self.hide_marker)
