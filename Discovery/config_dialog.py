@@ -83,9 +83,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
         self.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
 
-         # set validators so that user cannot type text into numeric line edits
-        self.displayTime.setValidator(QDoubleValidator(self.displayTime))
-        self.displayTime.setText("5")
 
 
     def init_combo_from_settings(self, cbo, settings_key):
@@ -150,9 +147,10 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue("bbox_expr", self.editBboxExpr.text())
 
         if(self.timeCB.isChecked()):
-            settings.setValue("display_time", "0")
+            settings.setValue("timer_checked", True)
         else:
-            settings.setValue("display_time", self.displayTime.text())
+            settings.setValue("timer_checked", False)
+            settings.setValue("display_time", self.displayTime.value()*1000)
 
     def disable_display_time(self):
         self.displayTime.setEnabled(not self.timeCB.isChecked())

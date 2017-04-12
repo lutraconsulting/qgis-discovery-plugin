@@ -114,7 +114,7 @@ class DiscoveryPlugin:
         self.marker2.setColor(QColor(255,255,255,200))
         self.marker2.setZValue(10)
         self.marker2.setVisible(False)
-        self.display_time = 4000.0
+        self.display_time = settings.value("display_time", "", type=int)
         self.is_displayed = False
 
 
@@ -309,14 +309,14 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
-        try:
-            self.display_time = float(settings.value("display_time", "", type=str))*1000
-        except:
-            self.display_time = 5000
+        self.dont_hide_marker = settings.value("timer_checked", "", type=bool)
+        if not self.dont_hide_marker:
+        	self.display_time = settings.value("display_time", "", type=int)
+
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
 
-        if(self.is_displayed):
+        if self.is_displayed:
             self.hide_marker()
             self.is_displayed = False
 
@@ -376,10 +376,10 @@ class DiscoveryPlugin:
             m.setCenter(point)
             m.setOpacity(1.0)
             m.setVisible(True)
-        if self.display_time>0:
-            QTimer.singleShot(self.display_time, self.hide_marker)
+        if self.dont_hide_marker:
+        	self.is_displayed = True
         else:
-            self.is_displayed = True
+        	QTimer.singleShot(self.display_time, self.hide_marker)
 
     def hide_marker(self):
         opacity = self.marker.opacity()

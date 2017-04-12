@@ -252,24 +252,27 @@
    <item row="13" column="1">
     <widget class="QCheckBox" name="timeCB">
      <property name="text">
-      <string>Disable display time</string>
+      <string>Don't hide map marker</string>
      </property>
     </widget>
    </item>
    <item row="15" column="0">
     <widget class="QLabel" name="label_9">
      <property name="text">
-      <string>Display time</string>
+      <string>Auto-hide map marker after</string>
      </property>
     </widget>
    </item>
-   <item row="16" column="0" colspan="2">
-    <widget class="QLabel" name="lblMessage">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
+   <item row="15" column="1">
+    <widget class="QSpinBox" name="displayTime">
+     <property name="suffix">
+      <string> seconds</string>
+     </property>
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="value">
+      <number>5</number>
      </property>
     </widget>
    </item>
@@ -283,8 +286,15 @@
      </property>
     </widget>
    </item>
-   <item row="15" column="1">
-    <widget class="QLineEdit" name="displayTime"/>
+   <item row="16" column="0" colspan="2">
+    <widget class="QLabel" name="lblMessage">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
