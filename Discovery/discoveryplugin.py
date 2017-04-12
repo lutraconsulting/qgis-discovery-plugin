@@ -114,7 +114,6 @@ class DiscoveryPlugin:
         self.marker2.setColor(QColor(255,255,255,200))
         self.marker2.setZValue(10)
         self.marker2.setVisible(False)
-        self.display_time = settings.value("display_time", "", type=int)
         self.is_displayed = False
 
 
@@ -311,7 +310,7 @@ class DiscoveryPlugin:
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
         self.dont_hide_marker = settings.value("timer_checked", "", type=bool)
         if not self.dont_hide_marker:
-        	self.display_time = settings.value("display_time", "", type=int)
+        	self.display_time = settings.value("display_time", type=int)
 
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
