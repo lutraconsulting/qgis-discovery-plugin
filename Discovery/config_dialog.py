@@ -83,6 +83,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editScaleExpr.setText(settings.value("scale_expr", "", type=str))
         self.editBboxExpr.setText(settings.value("bbox_expr", "", type=str))
 
+        self.timeCB.stateChanged.connect(self.disable_display_time)
+        self.disable_display_time()
+
     def init_combo_from_settings(self, cbo, settings_key):
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -143,6 +146,15 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue("geom_column", self.cboGeomColumn.currentText())
         settings.setValue("scale_expr", self.editScaleExpr.text())
         settings.setValue("bbox_expr", self.editBboxExpr.text())
+
+        if(self.timeCB.isChecked()):
+            settings.setValue("timer_checked", True)
+        else:
+            settings.setValue("timer_checked", False)
+            settings.setValue("display_time", self.displayTime.value()*1000)
+
+    def disable_display_time(self):
+        self.displayTime.setEnabled(self.timeCB.isChecked())
 
     def display_columns(self):
         """ Make a string out of display columns, e.g. "column1,column2" or just "column1"

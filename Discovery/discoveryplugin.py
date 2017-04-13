@@ -114,6 +114,7 @@ class DiscoveryPlugin:
         self.marker2.setColor(QColor(255,255,255,200))
         self.marker2.setZValue(10)
         self.marker2.setVisible(False)
+        self.is_displayed = False
 
 
     def initGui(self):
@@ -307,8 +308,19 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
+        self.set_timer_checkbox = settings.value("timer_checked", "", type=bool)
+        if self.set_timer_checkbox:
+        	try:
+        		self.display_time = settings.value("display_time", type=int)
+        	except TypeError:
+        		self.display_time = 5000
+
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
+
+        if self.is_displayed:
+            self.hide_marker()
+            self.is_displayed = False
 
         self.make_enabled(False)   # assume the config is invalid first
         self.db_conn = None
@@ -366,7 +378,10 @@ class DiscoveryPlugin:
             m.setCenter(point)
             m.setOpacity(1.0)
             m.setVisible(True)
-        QTimer.singleShot(4000, self.hide_marker)
+        if not self.set_timer_checkbox:
+        	self.is_displayed = True
+        else:
+        	QTimer.singleShot(self.display_time, self.hide_marker)
 
     def hide_marker(self):
         opacity = self.marker.opacity()
