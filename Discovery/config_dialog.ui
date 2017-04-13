@@ -250,14 +250,14 @@
     <widget class="QLineEdit" name="editBboxExpr"/>
    </item>
    <item row="14" column="0">
-    <widget class="QCheckBox" name="timeCB">
+    <widget class="QCheckBox" name="chkMarkerTime">
      <property name="text">
-      <string>Auto-hide map marker after</string>
+      <string>Auto-hide marker after</string>
      </property>
     </widget>
    </item>
    <item row="14" column="1">
-    <widget class="QSpinBox" name="displayTime">
+    <widget class="QSpinBox" name="spinMarkerTime">
      <property name="suffix">
       <string> seconds</string>
      </property>
@@ -296,11 +296,17 @@
   <tabstop>cboSchema</tabstop>
   <tabstop>cboTable</tabstop>
   <tabstop>cboSearchColumn</tabstop>
+  <tabstop>cbEchoSearchColumn</tabstop>
   <tabstop>cboDisplayColumn1</tabstop>
   <tabstop>cboDisplayColumn2</tabstop>
+  <tabstop>cboDisplayColumn3</tabstop>
+  <tabstop>cboDisplayColumn4</tabstop>
+  <tabstop>cboDisplayColumn5</tabstop>
   <tabstop>cboGeomColumn</tabstop>
   <tabstop>editScaleExpr</tabstop>
   <tabstop>editBboxExpr</tabstop>
+  <tabstop>chkMarkerTime</tabstop>
+  <tabstop>spinMarkerTime</tabstop>
   <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources/>

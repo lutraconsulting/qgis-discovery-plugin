@@ -95,6 +95,7 @@ class DiscoveryPlugin:
         self.query_text = ''
         self.query_dict = {}
         self.db_idle_time = 60.0  # s
+        self.display_time = 5000  # ms
 
         self.search_results = []
         self.tool_bar = None
@@ -308,12 +309,10 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
-        self.set_timer_checkbox = settings.value("timer_checked", "", type=bool)
-        if self.set_timer_checkbox:
-        	try:
-        		self.display_time = settings.value("display_time", type=int)
-        	except TypeError:
-        		self.display_time = 5000
+        if settings.value("marker_time_enabled", True, type=bool):
+            self.display_time = settings.value("marker_time", 5000, type=int)
+        else:
+            self.display_time = -1
 
         scale_expr = settings.value("scale_expr", "", type=str)
         bbox_expr = settings.value("bbox_expr", "", type=str)
@@ -378,10 +377,10 @@ class DiscoveryPlugin:
             m.setCenter(point)
             m.setOpacity(1.0)
             m.setVisible(True)
-        if not self.set_timer_checkbox:
-        	self.is_displayed = True
+        if self.display_time == -1:
+            self.is_displayed = True
         else:
-        	QTimer.singleShot(self.display_time, self.hide_marker)
+            QTimer.singleShot(self.display_time, self.hide_marker)
 
     def hide_marker(self):
         opacity = self.marker.opacity()
