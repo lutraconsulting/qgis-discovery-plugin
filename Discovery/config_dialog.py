@@ -12,16 +12,16 @@
 
 import os
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4 import uic
+from PyQt5.QtCore import QSettings, Qt, QUrl
+from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtWidgets import QDialogButtonBox
+from PyQt5 import uic
 
-import dbutils
+from . import dbutils
 
 plugin_dir = os.path.dirname(__file__)
 
 uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_dialog.ui'))
-
 
 
 class ConfigDialog(qtBaseClass, uiConfigDialog):
@@ -104,9 +104,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         try:
             self.conn = dbutils.get_connection(dbutils.get_postgres_conn_info(name))
             self.lblMessage.setText("")
-        except StandardError, e:
+        except Exception as e:
             self.conn = None
-            self.lblMessage.setText("<font color=red>"+ e.message +"</font>")
+            self.lblMessage.setText("<font color=red>"+ str(e.args) +"</font>")
         self.populate_schemas()
 
     def populate_schemas(self):

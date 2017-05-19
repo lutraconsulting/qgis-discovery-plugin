@@ -10,6 +10,7 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
+
 def classFactory(iface):
-    from discoveryplugin import DiscoveryPlugin
+    from .discoveryplugin import DiscoveryPlugin
     return DiscoveryPlugin(iface)

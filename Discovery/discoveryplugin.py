@@ -13,21 +13,28 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4 import uic
+from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt
+from PyQt5.QtGui import QColor, QIcon
+from PyQt5.QtWidgets import QAction, QCompleter
 
 import time
-import types
 import os.path
-import psycopg2
 
-from qgis.core import *
-from qgis.gui import *
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsExpression,
+    QgsFeature,
+    QgsField,
+    QgsFields,
+    QgsGeometry,
+    QgsRectangle,
+)
+from qgis.gui import QgsVertexMarker, QgsFilterLineEdit, QgsMessageBar
 from qgis.utils import iface
 
-import config_dialog
-import dbutils
+from . import config_dialog
+from . import dbutils
 
 
 def eval_expression(expr_text, extra_data, default=None):
@@ -39,9 +46,9 @@ def eval_expression(expr_text, extra_data, default=None):
 
     flds = QgsFields()
     for extra_col, extra_value in extra_data.iteritems():
-        if isinstance(extra_value, types.IntType):
+        if isinstance(extra_value, int):
             t = QVariant.Int
-        elif isinstance(extra_value, types.FloatType):
+        elif isinstance(extra_value, float):
             t = QVariant.Double
         else:
             t = QVariant.String
@@ -106,17 +113,16 @@ class DiscoveryPlugin:
         self.marker = QgsVertexMarker(iface.mapCanvas())
         self.marker.setIconSize(15)
         self.marker.setPenWidth(2)
-        self.marker.setColor(QColor(226,27,28)) #51,160,44))
+        self.marker.setColor(QColor(226, 27, 28))  #51,160,44))
         self.marker.setZValue(11)
         self.marker.setVisible(False)
         self.marker2 = QgsVertexMarker(iface.mapCanvas())
         self.marker2.setIconSize(16)
         self.marker2.setPenWidth(4)
-        self.marker2.setColor(QColor(255,255,255,200))
+        self.marker2.setColor(QColor(255, 255, 255, 200))
         self.marker2.setZValue(10)
         self.marker2.setVisible(False)
         self.is_displayed = False
-
 
     def initGui(self):
 
@@ -249,7 +255,7 @@ class DiscoveryPlugin:
         geometry_text, src_epsg, extra_data = self.search_results[result_index.row()]
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
-        dst_srid = canvas.mapRenderer().destinationCrs().authid()
+        dst_srid = canvas.mapSettings().destinationCrs().authid()
         transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(src_epsg),
                                            QgsCoordinateReferenceSystem(dst_srid))
         # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
@@ -330,7 +336,6 @@ class DiscoveryPlugin:
 
         if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
            len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
-            #iface.messageBar().pushMessage("Discovery", "Please configure the plugin", level=QgsMessageBar.INFO)
             return
 
         if len(self.conn_info) == 0:
@@ -359,7 +364,6 @@ class DiscoveryPlugin:
             else:
                 self.bbox_expr = bbox_expr
                 self.extra_expr_columns += expr.referencedColumns()
-
 
     def show_config_dialog(self):
 

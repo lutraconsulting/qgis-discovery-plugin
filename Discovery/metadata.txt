@@ -1,8 +1,9 @@
 [general]
 name=Discovery
-qgisMinimumVersion=2.0
+qgisMinimumVersion=2.99
+qgisMaximumVersion=3.99
 description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
-version=1.3.0
+version=2.0.0
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -16,7 +17,9 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=1.3.0  New features
+changelog=2.0 New features
+ - ported to QGIS 3
+ <p>1.3.0  New features
  - Configurable time for map marker display
  - Option to keep marker always visible
  <p>1.2.3 - Minor bugfixes

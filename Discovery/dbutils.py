@@ -10,7 +10,7 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-from PyQt4.QtCore import *
+from PyQt5.QtCore import QSettings
 
 import psycopg2
 
@@ -49,7 +49,10 @@ def get_postgres_conn_info(selected):
 
     conn_info = {}
     conn_info["host"] = settings.value("host", "", type=str)
-    conn_info["port"] = settings.value("port", 432, type=int)
+    try:
+        conn_info["port"] = settings.value("port", 5432, type=int)
+    except TypeError:
+        pass   # not present
     conn_info["database"] = settings.value("database", "", type=str)
     username = settings.value("username", "", type=str)
     password = settings.value("password", "", type=str)
@@ -62,6 +65,7 @@ def get_postgres_conn_info(selected):
 def _quote(identifier):
     """ quote identifier """
     return u'"%s"' % identifier.replace('"', '""')
+
 
 def _quote_str(txt):
     """ make the string safe - replace ' with '' """
@@ -77,6 +81,7 @@ def list_schemas(cursor):
     names = map(lambda row: row[0], cursor.fetchall())
     return sorted(names)
 
+
 def list_tables(cursor, schema):
     sql = """SELECT pg_class.relname
                 FROM pg_class
@@ -86,6 +91,7 @@ def list_tables(cursor, schema):
     cursor.execute(sql)
     names = map(lambda row: row[0], cursor.fetchall())
     return sorted(names)
+
 
 def list_columns(cursor, schema, table):
     sql = """SELECT a.attname AS column_name
