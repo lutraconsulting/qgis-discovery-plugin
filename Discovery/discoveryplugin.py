@@ -35,6 +35,7 @@ from qgis.utils import iface
 
 from . import config_dialog
 from . import dbutils
+from . import locator_filter
 
 
 def eval_expression(expr_text, extra_data, default=None):
@@ -166,6 +167,9 @@ class DiscoveryPlugin:
         # Read config
         self.read_config()
 
+        self.locator_filter = locator_filter.DiscoveryLocatorFilter(self)
+        self.iface.registerLocatorFilter(self.locator_filter)
+
         # Debug
         # import pydevd; pydevd.settrace('localhost', port=5678)
 
@@ -180,6 +184,9 @@ class DiscoveryPlugin:
         # Remove the new toolbar
         self.tool_bar.clear()  # Clear all actions
         self.iface.mainWindow().removeToolBar(self.tool_bar)
+
+        self.iface.deregisterLocatorFilter(self.locator_filter)
+        self.locator_filter = None
 
     def clear_suggestions(self):
         model = self.completer.model()
@@ -252,7 +259,10 @@ class DiscoveryPlugin:
 
     def on_result_selected(self, result_index):
         # What to do when the user makes a selection
-        geometry_text, src_epsg, extra_data = self.search_results[result_index.row()]
+        self.select_result(self.search_results[result_index.row()])
+
+    def select_result(self, result_data):
+        geometry_text, src_epsg, extra_data = result_data
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
         dst_srid = canvas.mapSettings().destinationCrs().authid()
