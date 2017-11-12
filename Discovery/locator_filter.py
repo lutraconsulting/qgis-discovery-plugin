@@ -11,7 +11,7 @@
 # (at your option) any later version.
 
 
-from qgis.gui import QgsLocatorFilter, QgsLocatorResult
+from qgis.core import QgsLocatorFilter, QgsLocatorResult
 
 from . import config_dialog
 from . import dbutils
