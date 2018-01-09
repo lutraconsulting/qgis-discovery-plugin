@@ -27,6 +27,7 @@ from qgis.gui import *
 from qgis.utils import iface
 
 import config_dialog
+import config_list_dialog
 import dbutils
 
 
@@ -86,7 +87,7 @@ class DiscoveryPlugin:
         self.db_timer = QTimer()
         self.line_edit_timer = QTimer()
         self.line_edit_timer.setSingleShot(True)
-        self.line_edit_timer.timeout.connect(self.reset_line_edit_after_move)
+        #self.line_edit_timer.timeout.connect(self.reset_line_edit_after_move)
         self.next_query_time = None
         self.last_query_time = time.time()
         self.db_conn = None
@@ -129,6 +130,7 @@ class DiscoveryPlugin:
              QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
              u"Configure Discovery", self.tool_bar)
         self.action_config.triggered.connect(self.show_config_dialog)
+        #self.action_config.triggered.connect(self.show_config_list_dialog)
         self.tool_bar.addAction(self.action_config)
 
         # Add search edit box
@@ -144,7 +146,7 @@ class DiscoveryPlugin:
         self.completer.setModelSorting(QCompleter.UnsortedModel)  # Sorting done in PostGIS
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # Show all fetched possibilities
         self.completer.activated[QModelIndex].connect(self.on_result_selected)
-        self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
+        #self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
         self.search_line_edit.setCompleter(self.completer)
 
         # Connect any signals
@@ -158,7 +160,9 @@ class DiscoveryPlugin:
         self.db_timer.start(100)
 
         # Read config
-        self.read_config()
+        # TODO last key
+        first_key = "osdata"
+        self.read_config(first_key)
 
         # Debug
         # import pydevd; pydevd.settrace('localhost', port=5678)
@@ -168,7 +172,7 @@ class DiscoveryPlugin:
         self.db_timer.stop()
         # Disconnect any signals
         self.db_timer.timeout.disconnect(self.do_db_operations)
-        self.completer.highlighted[QModelIndex].disconnect(self.on_result_highlighted)
+        #self.completer.highlighted[QModelIndex].disconnect(self.on_result_highlighted)
         self.completer.activated[QModelIndex].disconnect(self.on_result_selected)
         self.search_line_edit.textEdited.disconnect(self.on_search_text_changed)
         # Remove the new toolbar
@@ -282,7 +286,20 @@ class DiscoveryPlugin:
             current_extent.translate(dx, dy)
             canvas.setExtent(current_extent.boundingBox())
         canvas.refresh()
-        self.line_edit_timer.start(0)
+
+        # print("DEBUG!!!")
+        # print(self.search_line_edit.cursorPosition())
+        # # self.search_line_edit.cursorBackward(True, 5)
+        # # print(self.search_line_edit.cursorPosition())
+        # # self.search_line_edit.cursorForward(True, 13)
+        # # print(self.search_line_edit.cursorPosition())
+        # # self.search_line_edit.cursorWordBackward(True)
+        # self.search_line_edit.setCursorPosition(12)
+        # print(self.search_line_edit.cursorPosition())
+        # self.search_line_edit.setCursorPosition(0)
+        # print(self.search_line_edit.cursorPosition())
+        # TODO delete reset searchline
+        #self.line_edit_timer.start(0)
 
     def on_result_highlighted(self, result_idx):
         self.line_edit_timer.start(0)
@@ -296,26 +313,29 @@ class DiscoveryPlugin:
             self.db_conn = dbutils.get_connection(self.conn_info)
         return self.db_conn.cursor()
 
-    def read_config(self):
+    def read_config(self, key = ""):
         # the following code reads the configuration file which setups the plugin to search in the correct database,
         # table and method
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
-        connection = settings.value("connection", "", type=str)
-        self.postgisschema = settings.value("schema", "", type=str)
-        self.postgistable = settings.value("table", "", type=str)
-        self.postgissearchcolumn = settings.value("search_column", "", type=str)
-        self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
-        self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
-        self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
-        if settings.value("marker_time_enabled", True, type=bool):
-            self.display_time = settings.value("marker_time", 5000, type=int)
+
+        print("READ KEY: " + key)
+
+        connection = settings.value(key + "connection", "", type=str)
+        self.postgisschema = settings.value(key + "schema", "", type=str)
+        self.postgistable = settings.value(key + "table", "", type=str)
+        self.postgissearchcolumn = settings.value(key + "search_column", "", type=str)
+        self.echosearchcolumn = settings.value(key + "echo_search_column", True, type=bool)
+        self.postgisdisplaycolumn = settings.value(key + "display_columns", "", type=str)
+        self.postgisgeomcolumn = settings.value(key + "geom_column", "", type=str)
+        if settings.value(key + "marker_time_enabled", True, type=bool):
+            self.display_time = settings.value(key + "marker_time", 5000, type=int)
         else:
             self.display_time = -1
 
-        scale_expr = settings.value("scale_expr", "", type=str)
-        bbox_expr = settings.value("bbox_expr", "", type=str)
+        scale_expr = settings.value(key + "scale_expr", "", type=str)
+        bbox_expr = settings.value(key + "bbox_expr", "", type=str)
 
         if self.is_displayed:
             self.hide_marker()
@@ -361,12 +381,16 @@ class DiscoveryPlugin:
                 self.extra_expr_columns += expr.referencedColumns()
 
 
+    def show_config_list_dialog(self):
+        dlg = config_list_dialog.ConfigListDialog()
+        dlg.exec_()
+
     def show_config_dialog(self):
 
         dlg = config_dialog.ConfigDialog()
         if dlg.exec_():
             dlg.write_config()
-            self.read_config()
+            self.read_config(dlg.key)
 
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)
