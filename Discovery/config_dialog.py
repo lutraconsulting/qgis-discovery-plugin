@@ -49,6 +49,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             settings.setValue("config_list", [])
         config_list = settings.value("config_list")
 
+        self.cboConnection.addItem("")
+
         for key in config_list:
             item = QListWidgetItem(key)
             self.configListW.addItem(item)
@@ -62,10 +64,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.set_form_fields(key)
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
 
-        # TODO config name validator
-        #self.buttonBox.accepted.connect(self.validate_and_accept)
-        #validator = QValidator()
-        #self.cboName.setValidator()
 
     def validate_nameField(self):
         settings = QSettings()
