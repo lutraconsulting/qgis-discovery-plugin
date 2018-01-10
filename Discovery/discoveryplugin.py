@@ -125,12 +125,21 @@ class DiscoveryPlugin:
         self.tool_bar = self.iface.addToolBar('Discovery')
         self.tool_bar.setObjectName('Discovery_Plugin')
 
+        # Add combobox for configs
+        self.config_combo = QComboBox()
+        settings = QSettings()
+        settings.beginGroup("/Discovery")
+        config_list = settings.value("config_list")
+        settings.endGroup()
+        if config_list:
+            for conf in config_list:
+                self.config_combo.addItem(conf)
+
         # Create action that will start plugin configuration
         self.action_config = QAction(
              QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
              u"Configure Discovery", self.tool_bar)
         self.action_config.triggered.connect(self.show_config_dialog)
-        #self.action_config.triggered.connect(self.show_config_list_dialog)
         self.tool_bar.addAction(self.action_config)
 
         # Add search edit box
@@ -138,6 +147,10 @@ class DiscoveryPlugin:
         self.search_line_edit.setPlaceholderText('Search for...')
         self.search_line_edit.setMaximumWidth(768)
         self.tool_bar.addWidget(self.search_line_edit)
+
+
+        self.tool_bar.addWidget(self.config_combo)
+        self.config_combo.currentIndexChanged.connect(self.change_configuration)
 
         # Set up the completer
         self.completer = QCompleter([])  # Initialise with en empty list
@@ -160,9 +173,7 @@ class DiscoveryPlugin:
         self.db_timer.start(100)
 
         # Read config
-        # TODO last key
-        first_key = "osdata"
-        self.read_config(first_key)
+        self.read_config(config_list[0] if config_list else "")
 
         # Debug
         # import pydevd; pydevd.settrace('localhost', port=5678)
@@ -287,19 +298,6 @@ class DiscoveryPlugin:
             canvas.setExtent(current_extent.boundingBox())
         canvas.refresh()
 
-        # print("DEBUG!!!")
-        # print(self.search_line_edit.cursorPosition())
-        # # self.search_line_edit.cursorBackward(True, 5)
-        # # print(self.search_line_edit.cursorPosition())
-        # # self.search_line_edit.cursorForward(True, 13)
-        # # print(self.search_line_edit.cursorPosition())
-        # # self.search_line_edit.cursorWordBackward(True)
-        # self.search_line_edit.setCursorPosition(12)
-        # print(self.search_line_edit.cursorPosition())
-        # self.search_line_edit.setCursorPosition(0)
-        # print(self.search_line_edit.cursorPosition())
-        # TODO delete reset searchline
-        #self.line_edit_timer.start(0)
 
     def on_result_highlighted(self, result_idx):
         self.line_edit_timer.start(0)
@@ -313,14 +311,17 @@ class DiscoveryPlugin:
             self.db_conn = dbutils.get_connection(self.conn_info)
         return self.db_conn.cursor()
 
+    def change_configuration(self):
+        self.search_line_edit.setText("")
+        self.line_edit_timer.start(0)
+        self.read_config(self.config_combo.currentText())
+
     def read_config(self, key = ""):
         # the following code reads the configuration file which setups the plugin to search in the correct database,
         # table and method
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
-
-        print("READ KEY: " + key)
 
         connection = settings.value(key + "connection", "", type=str)
         self.postgisschema = settings.value(key + "schema", "", type=str)
@@ -381,13 +382,11 @@ class DiscoveryPlugin:
                 self.extra_expr_columns += expr.referencedColumns()
 
 
-    def show_config_list_dialog(self):
-        dlg = config_list_dialog.ConfigListDialog()
-        dlg.exec_()
-
     def show_config_dialog(self):
+        dlg = config_dialog.ConfigDialog(self.config_combo)
+        if (dlg.config_combo.currentIndex() >= 0):
+            dlg.configListW.setCurrentRow(dlg.config_combo.currentIndex())
 
-        dlg = config_dialog.ConfigDialog()
         if dlg.exec_():
             dlg.write_config()
             self.read_config(dlg.key)

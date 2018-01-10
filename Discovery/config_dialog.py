@@ -26,18 +26,19 @@ uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_di
 
 class ConfigDialog(qtBaseClass, uiConfigDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, config_combo, parent=None):
         qtBaseClass.__init__(self, parent)
         self.setupUi(self)
 
         self.conn = None
-        self.key = ""
+        self.key = ""  # currently selected config key
+        self.config_combo = config_combo
 
         # signals
         self.buttonBox.button(QDialogButtonBox.Help).clicked.connect(self.show_help)
         self.addButton.clicked.connect(self.add_config)
         self.deleteButton.clicked.connect(self.delete_config)
-        self.configListW.itemClicked.connect(self.on_item_clicked)
+        self.configListW.currentRowChanged.connect(self.config_selection_changed)
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -55,23 +56,22 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.configListW.setCurrentRow(0)
 
         key = self.configListW.currentItem().text() if self.configListW.currentItem() else ""
-
-
-        # TODO !!! disable when empty
-        if (not self.configListW.currentItem()):
+        if not self.configListW.count():
             self.enable_form(False)
-        self.enable_form(False)
         self.set_form_fields(key)
+        self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
 
     def set_form_fields(self, key = ""):
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
         settings = QSettings()
         settings.beginGroup("/Discovery")
-        #key = "osdata"
 
+        if key:
+            self.cboName.setText(key)
+        else:
+            self.cboName.setText("")
         # connections
-        self.cboConnection.addItem('')
         for conn in dbutils.get_postgres_connections():
             self.cboConnection.addItem(conn)
         self.init_combo_from_settings(self.cboConnection, key + "connection")
@@ -109,9 +109,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editBboxExpr.setText(settings.value(key + "bbox_expr", "", type=str))
         self.chkMarkerTime.setChecked(settings.value(key + "marker_time_enabled", True, type=bool))
         self.spinMarkerTime.setValue(settings.value(key + "marker_time", 5000, type=int) / 1000)
-
-        # TODO only on init
-        self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
         self.time_checkbox_changed()
 
         QApplication.restoreOverrideCursor()
@@ -163,69 +160,63 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             for column in columns:
                 cbo.addItem(column)
 
-    def write_config_to_list(self, key, settings):
-        #settings = QSettings()
-        #settings.beginGroup("/Discovery")
+    def delete_config_from_settings(self, key, settings):
+        settings.remove(key + "connection")
+        settings.remove(key + "schema")
+        settings.remove(key + "table")
+        settings.remove(key + "search_column")
+        settings.remove(key + "echo_search_column")
+        settings.remove(key + "display_columns")
+        settings.remove(key + "geom_column")
+        settings.remove(key + "scale_expr")
+        settings.remove(key + "bbox_expr")
+        settings.remove(key + "marker_time_enabled")
+        settings.remove(key + "marker_time")
 
-        #configs_list = settings.value("config_list")
-        configs_list = {}
 
-        config = {"connection": self.cboConnection.currentText,
-                  "schema": self.cboSchema.currentText,
-                  "table": self.cboTable.currentText,
-                  "search_column": self.cboSearchColumn.currentText,
-                  "echo_search_column": self.cbEchoSearchColumn.isChecked,
-                  "display_columns": self.display_columns(),
-                  "geom_column": self.cboGeomColumn.currentText,
-                  "scale_expr": self.editScaleExpr.text,
-                  "bbox_expr": self.editBboxExpr.text,
-                  "marker_time_enabled": self.chkMarkerTime.isChecked,
-                  "marker_time": self.spinMarkerTime.value
-                  }
+    def validate_key(self, key, config_list):
 
-        # if not (configs_list):
-        #     configs_list = {}
-        # configs_list[key] = config
-        # print("DEBUG!! saving config")
-        #
-        # dict = {}
-        # for k, v in configs_list.items():
-        #     dict[str(k)] = v
-        # settings.setValue("config_list", dict)
-        dict2 = {}
-        dict2["fdsfs"] = 3
-        dict3 = {"sdasd": 3}
-        print(dict2)
-        print(dict3)
-        data = {'one': 1, 'two': dict3}
-        settings.setValue('data', data)
-        print("DEBUG!! data saved")
+        if len(key) <= 3: return False
+        if key in config_list: return False
 
-        data = settings.value('data')
-        d = {}
-        for k, v in data.items():
-            d[str(k)] = v
-        print("DEBUG!! data converted")
-        print(d)
 
-        print(configs_list)
+
+
+        return True
 
     def write_config(self):
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
 
-        key = self.cboConnection.currentText()
-        print("KEY write: " + key)
-
         config_list = settings.value("config_list")
         if not config_list:
             config_list = []
 
+        key = self.cboName.text()
+
+        self.validate_key(key, config_list)
+
+        if self.key != key:
+
+            if not self.validate_key(key, config_list):
+                # TODO show unvalid key
+                return
+
+            if self.key in config_list:
+                config_list.remove(self.key)
+            self.config_combo.removeItem(self.configListW.currentRow())
+            self.delete_config_from_settings(self.key, settings)
+            self.key = key
+
         if key not in config_list:
             config_list.append(key)
             settings.setValue("config_list", config_list)
-        self.key = key
+
+        all_items = [self.config_combo.itemText(i) for i in range(self.config_combo.count())]
+        if key not in all_items:
+            self.config_combo.addItem(key)
+
         settings.setValue(key + "connection", self.cboConnection.currentText())
         settings.setValue(key + "schema", self.cboSchema.currentText())
         settings.setValue(key + "table", self.cboTable.currentText())
@@ -238,27 +229,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue(key + "marker_time_enabled", self.chkMarkerTime.isChecked())
         settings.setValue(key + "marker_time", self.spinMarkerTime.value()*1000)
 
-        #self.write_config_to_list(self.cboConnection.currentText(), settings)
-
-    def reload_data(self, key):
-        settings = QSettings()
-        settings.beginGroup("/Discovery")
-
-        self.cboConnection.setEditText(settings.value(key + "connection"))
-        self.cboSchema.setEditText(settings.value(key + "schema"))
-        self.cboTable.setEditText(settings.value(key + "table"))
-        self.cboSearchColumn.setEditText(settings.value(key + "search_column"))
-
-        self.cbEchoSearchColumn.setChecked(settings.value(key + "echo_search_column") == "true")
-        self.display_columns.setEditText(settings.value(key + "display_columns"))
-
-        print("DEBUG!!!")
-        print(settings.value(key + "display_columns"))
-        self.cboGeomColumn.setEditText(settings.value(key + "geom_column"))
-        self.editScaleExpr.setText(settings.value(key + "scale_expr", self.editScaleExpr.text()))
-        self.editBboxExpr.setText(settings.value(key + "bbox_expr", self.editBboxExpr.text()))
-        #self.chkMarkerTime
-        #self.spinMarkerTime
 
     def time_checkbox_changed(self):
         self.spinMarkerTime.setEnabled(self.chkMarkerTime.isChecked())
@@ -274,32 +244,52 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
                 lst.append(txt)
         return ",".join(lst)
 
-    # TODO name
+    def enable_form(self, enable = True):
+        # TODO put all to one widget and enable/disable only it
+        #self.formLayout.setEnabled(enable)
+        self.cboName.setEnabled(enable)
+        self.cboConnection.setEnabled(enable)
+        self.cboSchema.setEnabled(enable)
+        self.cboTable.setEnabled(enable)
+        self.cboSearchColumn.setEnabled(enable)
+        self.cbEchoSearchColumn.setEnabled(enable)
+        self.cboDisplayColumn1.setEnabled(enable)
+        self.cboDisplayColumn2.setEnabled(enable)
+        self.cboDisplayColumn3.setEnabled(enable)
+        self.cboDisplayColumn4.setEnabled(enable)
+        self.cboDisplayColumn5.setEnabled(enable)
+        self.cboGeomColumn.setEnabled(enable)
+        self.editScaleExpr.setEnabled(enable)
+        self.editBboxExpr.setEnabled(enable)
+        self.chkMarkerTime.setEnabled(enable)
+        self.spinMarkerTime.setEnabled(enable)
+
     def add_config(self):
         txt = "New config"
         item = QListWidgetItem(txt)
         self.configListW.addItem(item)
         self.configListW.setCurrentItem(item)
+        self.config_combo.addItem(txt)
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
         config_list = settings.value("config_list")
+        if not (config_list):
+            config_list = []
+            self.enable_form()
         config_list.append(txt)
         settings.setValue("config_list", config_list)
 
         # reset fields
         self.set_form_fields()
-        print("!!!add config")
+        self.cboName.setText(txt)
+        self.key = txt
 
 
-    def enable_form(self, enable = True):
-        self.formLayout.setEnabled(enable)
-
-    # ask if really wanted to delete
-    # delete selected config
+    # TODO ask if really wanted to delete
     def delete_config(self):
         if self.configListW.currentItem():
-            print("!!!delete config")
+            self.config_combo.removeItem(self.configListW.currentRow())
             item_text = self.configListW.currentItem().text()
             item = self.configListW.takeItem(self.configListW.currentRow())
             del item
@@ -312,17 +302,18 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
             if (self.configListW.count()):
                 self.configListW.setCurrentRow(0)
-                self.on_item_clicked()
             else:
                 self.enable_form(False)
+                self.key = ""
 
-    #TODO render form
-    # TODO read correct config from settings
-    # TODO onnect it to changeSelectedItem instead of click
-    def on_item_clicked(self):
-        print("ITEM clicked")
-        #self.render_config_form()
+
+    def config_selection_changed(self):
+        if not self.configListW.count(): return
+
         self.key = self.configListW.currentItem().text()
+        index = self.config_combo.findData(self.key)
+        if (index != -1):
+            self.config_combo.setCurrentIndex(index)
         self.set_form_fields(self.key)
 
     def show_help(self):
