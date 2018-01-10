@@ -73,8 +73,10 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         if self.validate_key(key, config_list):
             self.cboName.setStyleSheet("")
+            self.lblMessage.setText("")
         else:
-            self.cboName.setStyleSheet("QLineEdit {background-color: red;}")
+            self.lblMessage.setText("<font color=red>Connection name is too short or already exists!</font>")
+            self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
     # connected to buttonBox.accepted()
     def validate_and_accept(self):
@@ -87,7 +89,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.config_combo.setCurrentIndex(self.configListW.currentRow())
             self.accept()
         else:
-            self.cboName.setStyleSheet("QLineEdit {background-color: red;}")
+            self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
     def set_form_fields(self, key = ""):
 
@@ -206,7 +208,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def validate_key(self, key, config_list):
 
-        if len(key) <= 3: return False
+        if len(key) < 3: return False
         if self.key != key and key in config_list: return False
 
         return True
@@ -314,6 +316,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     # TODO ask if really wanted to delete
     def delete_config(self):
 
+        if not self.configListW.currentItem(): return
+
         msgBox = QMessageBox()
         msgBox.setWindowTitle("Delete configuration")
         msgBox.setText("Do you want to delete selected configuration?")
@@ -323,27 +327,27 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if msgBox.exec_() == QMessageBox.No:
             return
 
-        if self.configListW.currentItem():
-            self.config_combo.removeItem(self.configListW.currentRow())
-            item_text = self.configListW.currentItem().text()
-            item = self.configListW.takeItem(self.configListW.currentRow())
-            del item
+        self.config_combo.removeItem(self.configListW.currentRow())
+        item_text = self.configListW.currentItem().text()
+        item = self.configListW.takeItem(self.configListW.currentRow())
+        del item
 
-            settings = QSettings()
-            settings.beginGroup("/Discovery")
-            config_list = settings.value("config_list")
-            config_list.remove(item_text)
-            settings.setValue("config_list", config_list)
+        settings = QSettings()
+        settings.beginGroup("/Discovery")
+        config_list = settings.value("config_list")
+        config_list.remove(item_text)
+        settings.setValue("config_list", config_list)
 
-            if (self.configListW.count()):
-                self.configListW.setCurrentRow(0)
-            else:
-                self.enable_form(False)
-                self.key = ""
+        if (self.configListW.count()):
+            self.configListW.setCurrentRow(0)
+        else:
+            self.enable_form(False)
+            self.key = ""
 
 
     def config_selection_changed(self):
         if not self.configListW.count(): return
+        if not self.configListW.currentItem(): return
 
         self.key = self.configListW.currentItem().text()
         index = self.config_combo.findData(self.key)
