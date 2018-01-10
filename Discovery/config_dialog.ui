@@ -320,6 +320,16 @@
          </property>
         </widget>
        </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="cboName"/>
+       </item>
        <item row="15" column="1">
         <widget class="QSpinBox" name="spinMarkerTime">
          <property name="suffix">
@@ -332,16 +342,6 @@
           <number>5</number>
          </property>
         </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>Name</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="cboName"/>
        </item>
       </layout>
      </item>
@@ -358,7 +358,7 @@
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
    <receiver>ConfigDialog</receiver>
-   <slot>accept()</slot>
+   <slot>validate_and_accept()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>248</x>
@@ -387,4 +387,7 @@
    </hints>
   </connection>
  </connections>
+ <slots>
+  <slot>validate_and_accept()</slot>
+ </slots>
 </ui>

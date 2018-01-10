@@ -27,7 +27,6 @@ from qgis.gui import *
 from qgis.utils import iface
 
 import config_dialog
-import config_list_dialog
 import dbutils
 
 

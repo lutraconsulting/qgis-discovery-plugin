@@ -39,6 +39,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.addButton.clicked.connect(self.add_config)
         self.deleteButton.clicked.connect(self.delete_config)
         self.configListW.currentRowChanged.connect(self.config_selection_changed)
+        self.cboName.textChanged.connect(self.validate_nameField)
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -61,6 +62,35 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.set_form_fields(key)
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
 
+        # TODO config name validator
+        #self.buttonBox.accepted.connect(self.validate_and_accept)
+        #validator = QValidator()
+        #self.cboName.setValidator()
+
+    def validate_nameField(self):
+        settings = QSettings()
+        settings.beginGroup("/Discovery")
+        config_list = settings.value("config_list")
+        key = self.cboName.text()
+
+        if self.validate_key(key, config_list):
+            self.cboName.setStyleSheet("")
+        else:
+            self.cboName.setStyleSheet("QLineEdit {background-color: red;}")
+
+    # connected to buttonBox.accepted()
+    def validate_and_accept(self):
+        settings = QSettings()
+        settings.beginGroup("/Discovery")
+        config_list = settings.value("config_list")
+        key = self.cboName.text()
+
+        if self.validate_key(key, config_list):
+            self.config_combo.setCurrentIndex(self.configListW.currentRow())
+            self.accept()
+        else:
+            self.cboName.setStyleSheet("QLineEdit {background-color: red;}")
+
     def set_form_fields(self, key = ""):
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -72,8 +102,10 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         else:
             self.cboName.setText("")
         # connections
+        all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
         for conn in dbutils.get_postgres_connections():
-            self.cboConnection.addItem(conn)
+            if conn not in all_cons:
+                self.cboConnection.addItem(conn)
         self.init_combo_from_settings(self.cboConnection, key + "connection")
         self.cboConnection.currentIndexChanged.connect(self.connect_db)
         self.connect_db()
@@ -177,10 +209,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def validate_key(self, key, config_list):
 
         if len(key) <= 3: return False
-        if key in config_list: return False
-
-
-
+        if self.key != key and key in config_list: return False
 
         return True
 
@@ -194,12 +223,10 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             config_list = []
 
         key = self.cboName.text()
-
-        self.validate_key(key, config_list)
-
         if self.key != key:
 
             if not self.validate_key(key, config_list):
+
                 # TODO show unvalid key
                 return
 
@@ -288,6 +315,16 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     # TODO ask if really wanted to delete
     def delete_config(self):
+
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Delete configuration")
+        msgBox.setText("Do you want to delete selected configuration?")
+        msgBox.setStandardButtons(QMessageBox.Yes)
+        msgBox.addButton(QMessageBox.No)
+        msgBox.setDefaultButton(QMessageBox.No)
+        if msgBox.exec_() == QMessageBox.No:
+            return
+
         if self.configListW.currentItem():
             self.config_combo.removeItem(self.configListW.currentRow())
             item_text = self.configListW.currentItem().text()
