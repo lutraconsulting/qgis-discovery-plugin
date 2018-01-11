@@ -49,6 +49,16 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             settings.setValue("config_list", [])
         config_list = settings.value("config_list")
 
+        # prev version compatibility settings
+        if self.prev_version_config_available():
+            config_list.append("")
+            settings.setValue("config_list", config_list)
+
+        # if empty, add config
+        if not config_list:
+            config_list.append("New config")
+            settings.setValue("config_list", config_list)
+
         self.cboConnection.addItem("")
 
         for key in config_list:
@@ -57,11 +67,21 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if self.configOptions.count():
             self.configOptions.setCurrentIndex(0)
 
-        key = self.configOptions.currentText() if self.configOptions.currentIndex() >= 0 else ""
+        self.key = self.configOptions.currentText() if self.configOptions.currentIndex() >= 0 else ""
+
         if not self.configOptions.count():
             self.enable_form(False)
-        self.set_form_fields(key)
+        self.set_form_fields(self.key, True)
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
+
+    def prev_version_config_available(self):
+        settings = QSettings()
+        settings.beginGroup("/Discovery")
+
+        conn = settings.value("connection")
+        if conn:
+            return True
+        return False
 
 
     def validate_nameField(self):
@@ -90,7 +110,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         else:
             self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
-    def set_form_fields(self, key = ""):
+    def set_form_fields(self, key = "", is_init = False):
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
         settings = QSettings()
@@ -98,8 +118,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         if key:
             self.cboName.setText(key)
+        elif is_init:
+            self.cboName.setText("config1")
         else:
             self.cboName.setText("")
+
         # connections
         all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
         for conn in dbutils.get_postgres_connections():
@@ -226,8 +249,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if self.key != key:
 
             if not self.validate_key(key, config_list):
-
-                # TODO show unvalid key
                 return
 
             if self.key in config_list:
@@ -274,7 +295,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def enable_form(self, enable = True):
         # TODO put all to one widget and enable/disable only it
-        #self.formLayout.setEnabled(enable)
         self.cboName.setEnabled(enable)
         self.cboConnection.setEnabled(enable)
         self.cboSchema.setEnabled(enable)
@@ -315,8 +335,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
 
     def delete_config(self):
-
-        if not self.configOptions.currentIndex() < 0: return
+        if self.configOptions.currentIndex() < 0: return
 
         msgBox = QMessageBox()
         msgBox.setWindowTitle("Delete configuration")
@@ -340,6 +359,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if (self.configOptions.count()):
             self.configOptions.setCurrentIndex(0)
         else:
+            self.set_form_fields("")
             self.enable_form(False)
             self.key = ""
 
