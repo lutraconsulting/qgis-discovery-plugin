@@ -387,7 +387,7 @@ class DiscoveryPlugin:
 
         if dlg.exec_():
             dlg.write_config()
-            self.read_config(dlg.key)
+            self.config_combo.setCurrentIndex(dlg.configOptions.currentIndex())
 
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)

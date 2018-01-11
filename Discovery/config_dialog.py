@@ -313,7 +313,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.spinMarkerTime.setEnabled(enable)
 
     def add_config(self):
-        txt = "New config"
+        txt = ""
         self.configOptions.addItem(txt)
         self.configOptions.setCurrentIndex(self.configOptions.count() - 1)
         self.config_combo.addItem(txt)
