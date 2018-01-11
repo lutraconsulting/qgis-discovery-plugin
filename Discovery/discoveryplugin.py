@@ -124,6 +124,13 @@ class DiscoveryPlugin:
         self.tool_bar = self.iface.addToolBar('Discovery')
         self.tool_bar.setObjectName('Discovery_Plugin')
 
+        # Create action that will start plugin configuration
+        self.action_config = QAction(
+             QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
+             u"Configure Discovery", self.tool_bar)
+        self.action_config.triggered.connect(self.show_config_dialog)
+        self.tool_bar.addAction(self.action_config)
+
         # Add combobox for configs
         self.config_combo = QComboBox()
         settings = QSettings()
@@ -133,13 +140,7 @@ class DiscoveryPlugin:
         if config_list:
             for conf in config_list:
                 self.config_combo.addItem(conf)
-
-        # Create action that will start plugin configuration
-        self.action_config = QAction(
-             QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
-             u"Configure Discovery", self.tool_bar)
-        self.action_config.triggered.connect(self.show_config_dialog)
-        self.tool_bar.addAction(self.action_config)
+        self.tool_bar.addWidget(self.config_combo)
 
         # Add search edit box
         self.search_line_edit = QgsFilterLineEdit()
@@ -147,8 +148,6 @@ class DiscoveryPlugin:
         self.search_line_edit.setMaximumWidth(768)
         self.tool_bar.addWidget(self.search_line_edit)
 
-
-        self.tool_bar.addWidget(self.config_combo)
         self.config_combo.currentIndexChanged.connect(self.change_configuration)
 
         # Set up the completer
@@ -329,8 +328,8 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value(key + "echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value(key + "display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value(key + "geom_column", "", type=str)
-        if settings.value(key + "marker_time_enabled", True, type=bool):
-            self.display_time = settings.value(key + "marker_time", 5000, type=int)
+        if settings.value("marker_time_enabled", True, type=bool):
+            self.display_time = settings.value("marker_time", 5000, type=int)
         else:
             self.display_time = -1
 
@@ -384,7 +383,7 @@ class DiscoveryPlugin:
     def show_config_dialog(self):
         dlg = config_dialog.ConfigDialog(self.config_combo)
         if (dlg.config_combo.currentIndex() >= 0):
-            dlg.configListW.setCurrentRow(dlg.config_combo.currentIndex())
+            dlg.configOptions.setCurrentIndex(dlg.config_combo.currentIndex())
 
         if dlg.exec_():
             dlg.write_config()
