@@ -17,6 +17,7 @@ from PyQt4.QtGui import *
 from PyQt4 import uic
 
 import dbutils
+import discoveryplugin
 
 plugin_dir = os.path.dirname(__file__)
 
@@ -26,13 +27,12 @@ uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_di
 
 class ConfigDialog(qtBaseClass, uiConfigDialog):
 
-    def __init__(self, config_combo, parent=None):
+    def __init__(self, parent=None):
         qtBaseClass.__init__(self, parent)
         self.setupUi(self)
 
         self.conn = None
         self.key = ""  # currently selected config key
-        self.config_combo = config_combo
 
         # signals
         self.buttonBox.button(QDialogButtonBox.Help).clicked.connect(self.show_help)
@@ -71,7 +71,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         if not self.configOptions.count():
             self.enable_form(False)
-        self.set_form_fields(self.key, True)
+
+        self.set_form_fields(self.key)
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
 
     def prev_version_config_available(self):
@@ -105,12 +106,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         key = self.cboName.text()
 
         if self.validate_key(key, config_list):
-            self.config_combo.setCurrentIndex(self.configOptions.currentIndex())
             self.accept()
         else:
             self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
-    def set_form_fields(self, key = "", is_init = False):
+    def set_form_fields(self, key = ""):
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
         settings = QSettings()
@@ -118,8 +118,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         if key:
             self.cboName.setText(key)
-        elif is_init:
-            self.cboName.setText("config1")
         else:
             self.cboName.setText("")
 
@@ -214,24 +212,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             for column in columns:
                 cbo.addItem(column)
 
-    def delete_config_from_settings(self, key, settings):
-        settings.remove(key + "connection")
-        settings.remove(key + "schema")
-        settings.remove(key + "table")
-        settings.remove(key + "search_column")
-        settings.remove(key + "echo_search_column")
-        settings.remove(key + "display_columns")
-        settings.remove(key + "geom_column")
-        settings.remove(key + "scale_expr")
-        settings.remove(key + "bbox_expr")
-
-        #settings.remove(key + "marker_time_enabled")
-        #settings.remove(key + "marker_time")
-
-
     def validate_key(self, key, config_list):
 
-        if len(key) < 3: return False
+        if not key: return False
         if self.key != key and key in config_list: return False
 
         return True
@@ -253,17 +236,12 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
             if self.key in config_list:
                 config_list.remove(self.key)
-            self.config_combo.removeItem(self.configOptions.currentIndex())
-            self.delete_config_from_settings(self.key, settings)
+            discoveryplugin.delete_config_from_settings(self.key, settings)
             self.key = key
 
         if key not in config_list:
             config_list.append(key)
             settings.setValue("config_list", config_list)
-
-        all_items = [self.config_combo.itemText(i) for i in range(self.config_combo.count())]
-        if key not in all_items:
-            self.config_combo.addItem(key)
 
         settings.setValue(key + "connection", self.cboConnection.currentText())
         settings.setValue(key + "schema", self.cboSchema.currentText())
@@ -277,6 +255,14 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         settings.setValue("marker_time_enabled", self.chkMarkerTime.isChecked())
         settings.setValue("marker_time", self.spinMarkerTime.value()*1000)
+
+        self.configOptions.clear()
+        for k in config_list:
+            self.configOptions.addItem(k)
+
+        index = self.configOptions.findText(key)
+        if (index != -1):
+            self.configOptions.setCurrentIndex(index)
 
 
     def time_checkbox_changed(self):
@@ -316,8 +302,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         txt = ""
         self.configOptions.addItem(txt)
         self.configOptions.setCurrentIndex(self.configOptions.count() - 1)
-        self.config_combo.addItem(txt)
-        self.config_combo.setCurrentIndex(self.configOptions.currentIndex())
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -346,16 +330,16 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if msgBox.exec_() == QMessageBox.No:
             return
 
-        item_text = self.configOptions.currentText()
-        self.config_combo.removeItem(self.configOptions.currentIndex())
-        self.configOptions.removeItem(self.configOptions.currentIndex())
+        self.delete_config_without_confirm()
 
+    def delete_config_without_confirm(self):
+        item_text = self.configOptions.currentText()
+        self.configOptions.removeItem(self.configOptions.currentIndex())
         settings = QSettings()
         settings.beginGroup("/Discovery")
         config_list = settings.value("config_list")
         config_list.remove(item_text)
         settings.setValue("config_list", config_list)
-
         if (self.configOptions.count()):
             self.configOptions.setCurrentIndex(0)
         else:
@@ -363,15 +347,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.enable_form(False)
             self.key = ""
 
-
     def config_selection_changed(self):
         if not self.configOptions.count(): return
         if self.configOptions.currentIndex() < 0: return
 
         self.key = self.configOptions.currentText()
-        index = self.config_combo.findData(self.key)
-        if (index != -1):
-            self.config_combo.setCurrentIndex(index)
         self.set_form_fields(self.key)
 
     def show_help(self):

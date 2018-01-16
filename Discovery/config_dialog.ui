@@ -411,5 +411,6 @@
  </connections>
  <slots>
   <slot>validate_and_accept()</slot>
+  <slot>clear_and_reject()</slot>
  </slots>
 </ui>

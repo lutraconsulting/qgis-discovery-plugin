@@ -73,6 +73,18 @@ def bbox_str_to_rectangle(bbox_str):
     except ValueError:
         return None
 
+def delete_config_from_settings(key, settings):
+    print("deleteing key:" + str(key))
+    settings.remove(key + "connection")
+    settings.remove(key + "schema")
+    settings.remove(key + "table")
+    settings.remove(key + "search_column")
+    settings.remove(key + "echo_search_column")
+    settings.remove(key + "display_columns")
+    settings.remove(key + "geom_column")
+    settings.remove(key + "scale_expr")
+    settings.remove(key + "bbox_expr")
+
 
 class DiscoveryPlugin:
 
@@ -86,7 +98,7 @@ class DiscoveryPlugin:
         self.db_timer = QTimer()
         self.line_edit_timer = QTimer()
         self.line_edit_timer.setSingleShot(True)
-        #self.line_edit_timer.timeout.connect(self.reset_line_edit_after_move)
+        self.line_edit_timer.timeout.connect(self.reset_line_edit_after_move)
         self.next_query_time = None
         self.last_query_time = time.time()
         self.db_conn = None
@@ -136,10 +148,29 @@ class DiscoveryPlugin:
         settings = QSettings()
         settings.beginGroup("/Discovery")
         config_list = settings.value("config_list")
-        settings.endGroup()
+
         if config_list:
             for conf in config_list:
                 self.config_combo.addItem(conf)
+        else:
+            # support for prev version
+            key = "Config1"
+            config_list = []
+            config_list.append(key)
+            settings.setValue("config_list", config_list)
+            self.config_combo.addItem(key)
+
+            settings.setValue(key + "connection", settings.value("connection"))
+            settings.setValue(key + "schema", settings.value("schema"))
+            settings.setValue(key + "table", settings.value("table"))
+            settings.setValue(key + "search_column", settings.value("search_column"))
+            settings.setValue(key + "echo_search_column", settings.value("echo_search_column"))
+            settings.setValue(key + "display_columns", settings.value("display_columns"))
+            settings.setValue(key + "geom_column", settings.value("geom_column"))
+            settings.setValue(key + "scale_expr", settings.value("scale_expr"))
+            settings.setValue(key + "bbox_expr", settings.value("bbox_expr"))
+
+            delete_config_from_settings("", settings)
         self.tool_bar.addWidget(self.config_combo)
 
         # Add search edit box
@@ -157,7 +188,7 @@ class DiscoveryPlugin:
         self.completer.setModelSorting(QCompleter.UnsortedModel)  # Sorting done in PostGIS
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # Show all fetched possibilities
         self.completer.activated[QModelIndex].connect(self.on_result_selected)
-        #self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
+        self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
         self.search_line_edit.setCompleter(self.completer)
 
         # Connect any signals
@@ -181,7 +212,7 @@ class DiscoveryPlugin:
         self.db_timer.stop()
         # Disconnect any signals
         self.db_timer.timeout.disconnect(self.do_db_operations)
-        #self.completer.highlighted[QModelIndex].disconnect(self.on_result_highlighted)
+        self.completer.highlighted[QModelIndex].disconnect(self.on_result_highlighted)
         self.completer.activated[QModelIndex].disconnect(self.on_result_selected)
         self.search_line_edit.textEdited.disconnect(self.on_search_text_changed)
         # Remove the new toolbar
@@ -381,13 +412,18 @@ class DiscoveryPlugin:
 
 
     def show_config_dialog(self):
-        dlg = config_dialog.ConfigDialog(self.config_combo)
-        if (dlg.config_combo.currentIndex() >= 0):
-            dlg.configOptions.setCurrentIndex(dlg.config_combo.currentIndex())
+        dlg = config_dialog.ConfigDialog()
+        if (self.config_combo.currentIndex() >= 0):
+            dlg.configOptions.setCurrentIndex(self.config_combo.currentIndex())
 
         if dlg.exec_():
             dlg.write_config()
+            self.config_combo.clear()
+            for key in [dlg.configOptions.itemText(i) for i in range(dlg.configOptions.count())]:
+                self.config_combo.addItem(key)
+
             self.config_combo.setCurrentIndex(dlg.configOptions.currentIndex())
+            self.change_configuration()
 
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)
