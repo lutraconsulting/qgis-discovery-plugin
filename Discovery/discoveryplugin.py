@@ -326,7 +326,7 @@ class DiscoveryPlugin:
             current_extent.translate(dx, dy)
             canvas.setExtent(current_extent.boundingBox())
         canvas.refresh()
-
+        self.line_edit_timer.start(0)
 
     def on_result_highlighted(self, result_idx):
         self.line_edit_timer.start(0)
