@@ -74,7 +74,6 @@ def bbox_str_to_rectangle(bbox_str):
         return None
 
 def delete_config_from_settings(key, settings):
-    print("deleteing key:" + str(key))
     settings.remove(key + "connection")
     settings.remove(key + "schema")
     settings.remove(key + "table")
@@ -152,7 +151,7 @@ class DiscoveryPlugin:
         if config_list:
             for conf in config_list:
                 self.config_combo.addItem(conf)
-        else:
+        elif settings.childGroups():
             # support for prev version
             key = "Config1"
             config_list = []
