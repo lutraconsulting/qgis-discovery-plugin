@@ -81,6 +81,17 @@ def bbox_str_to_rectangle(bbox_str):
     except ValueError:
         return None
 
+def delete_config_from_settings(key, settings):
+    settings.remove(key + "connection")
+    settings.remove(key + "schema")
+    settings.remove(key + "table")
+    settings.remove(key + "search_column")
+    settings.remove(key + "echo_search_column")
+    settings.remove(key + "display_columns")
+    settings.remove(key + "geom_column")
+    settings.remove(key + "scale_expr")
+    settings.remove(key + "bbox_expr")
+
 
 class DiscoveryPlugin:
 
@@ -138,11 +149,43 @@ class DiscoveryPlugin:
         self.action_config.triggered.connect(self.show_config_dialog)
         self.tool_bar.addAction(self.action_config)
 
+        # Add combobox for configs
+        self.config_combo = QComboBox()
+        settings = QSettings()
+        settings.beginGroup("/Discovery")
+        config_list = settings.value("config_list")
+
+        if config_list:
+            for conf in config_list:
+                self.config_combo.addItem(conf)
+        elif settings.childGroups():
+            # support for prev version
+            key = "Config1"
+            config_list = []
+            config_list.append(key)
+            settings.setValue("config_list", config_list)
+            self.config_combo.addItem(key)
+
+            settings.setValue(key + "connection", settings.value("connection"))
+            settings.setValue(key + "schema", settings.value("schema"))
+            settings.setValue(key + "table", settings.value("table"))
+            settings.setValue(key + "search_column", settings.value("search_column"))
+            settings.setValue(key + "echo_search_column", settings.value("echo_search_column"))
+            settings.setValue(key + "display_columns", settings.value("display_columns"))
+            settings.setValue(key + "geom_column", settings.value("geom_column"))
+            settings.setValue(key + "scale_expr", settings.value("scale_expr"))
+            settings.setValue(key + "bbox_expr", settings.value("bbox_expr"))
+
+            delete_config_from_settings("", settings)
+        self.tool_bar.addWidget(self.config_combo)
+
         # Add search edit box
         self.search_line_edit = QgsFilterLineEdit()
         self.search_line_edit.setPlaceholderText('Search for...')
         self.search_line_edit.setMaximumWidth(768)
         self.tool_bar.addWidget(self.search_line_edit)
+
+        self.config_combo.currentIndexChanged.connect(self.change_configuration)
 
         # Set up the completer
         self.completer = QCompleter([])  # Initialise with en empty list
@@ -165,7 +208,7 @@ class DiscoveryPlugin:
         self.db_timer.start(100)
 
         # Read config
-        self.read_config()
+        self.read_config(config_list[0] if config_list else "")
 
         self.locator_filter = locator_filter.DiscoveryLocatorFilter(self)
         self.iface.registerLocatorFilter(self.locator_filter)
@@ -312,26 +355,32 @@ class DiscoveryPlugin:
             self.db_conn = dbutils.get_connection(self.conn_info)
         return self.db_conn.cursor()
 
-    def read_config(self):
+    def change_configuration(self):
+        self.search_line_edit.setText("")
+        self.line_edit_timer.start(0)
+        self.read_config(self.config_combo.currentText())
+
+    def read_config(self, key = ""):
         # the following code reads the configuration file which setups the plugin to search in the correct database,
         # table and method
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
-        connection = settings.value("connection", "", type=str)
-        self.postgisschema = settings.value("schema", "", type=str)
-        self.postgistable = settings.value("table", "", type=str)
-        self.postgissearchcolumn = settings.value("search_column", "", type=str)
-        self.echosearchcolumn = settings.value("echo_search_column", True, type=bool)
-        self.postgisdisplaycolumn = settings.value("display_columns", "", type=str)
-        self.postgisgeomcolumn = settings.value("geom_column", "", type=str)
+
+        connection = settings.value(key + "connection", "", type=str)
+        self.postgisschema = settings.value(key + "schema", "", type=str)
+        self.postgistable = settings.value(key + "table", "", type=str)
+        self.postgissearchcolumn = settings.value(key + "search_column", "", type=str)
+        self.echosearchcolumn = settings.value(key + "echo_search_column", True, type=bool)
+        self.postgisdisplaycolumn = settings.value(key + "display_columns", "", type=str)
+        self.postgisgeomcolumn = settings.value(key + "geom_column", "", type=str)
         if settings.value("marker_time_enabled", True, type=bool):
             self.display_time = settings.value("marker_time", 5000, type=int)
         else:
             self.display_time = -1
 
-        scale_expr = settings.value("scale_expr", "", type=str)
-        bbox_expr = settings.value("bbox_expr", "", type=str)
+        scale_expr = settings.value(key + "scale_expr", "", type=str)
+        bbox_expr = settings.value(key + "bbox_expr", "", type=str)
 
         if self.is_displayed:
             self.hide_marker()
@@ -376,11 +425,18 @@ class DiscoveryPlugin:
                 self.extra_expr_columns += expr.referencedColumns()
 
     def show_config_dialog(self):
-
         dlg = config_dialog.ConfigDialog()
+        if (self.config_combo.currentIndex() >= 0):
+            dlg.configOptions.setCurrentIndex(self.config_combo.currentIndex())
+
         if dlg.exec_():
             dlg.write_config()
-            self.read_config()
+            self.config_combo.clear()
+            for key in [dlg.configOptions.itemText(i) for i in range(dlg.configOptions.count())]:
+                self.config_combo.addItem(key)
+
+            self.config_combo.setCurrentIndex(dlg.configOptions.currentIndex())
+            self.change_configuration()
 
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)
