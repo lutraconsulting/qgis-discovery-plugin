@@ -22,6 +22,9 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
         QgsLocatorFilter.__init__(self, None)
         self.plugin = plugin
 
+    def clone(self):
+        return DiscoveryLocatorFilter(self.plugin)
+
     def name(self):
         return "discovery"
 

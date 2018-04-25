@@ -15,7 +15,7 @@
 
 from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt
 from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtWidgets import QAction, QCompleter
+from PyQt5.QtWidgets import QAction, QComboBox, QCompleter
 
 import time
 import os.path
@@ -24,6 +24,7 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsExpression,
+    QgsExpressionContext,
     QgsFeature,
     QgsField,
     QgsFields,
@@ -46,7 +47,7 @@ def eval_expression(expr_text, extra_data, default=None):
         return default
 
     flds = QgsFields()
-    for extra_col, extra_value in extra_data.iteritems():
+    for extra_col, extra_value in extra_data.items():
         if isinstance(extra_value, int):
             t = QVariant.Int
         elif isinstance(extra_value, float):
@@ -55,10 +56,12 @@ def eval_expression(expr_text, extra_data, default=None):
             t = QVariant.String
         flds.append(QgsField(extra_col, t))
     f = QgsFeature(flds)
-    for extra_col, extra_value in extra_data.iteritems():
+    for extra_col, extra_value in extra_data.items():
         f[extra_col] = extra_value
     expr = QgsExpression(expr_text)
-    res = expr.evaluate(f)
+    ctx = QgsExpressionContext()
+    ctx.setFeature(f)
+    res = expr.evaluate(ctx)
     return default if expr.hasEvalError() else res
 
 
@@ -310,7 +313,8 @@ class DiscoveryPlugin:
         canvas = self.iface.mapCanvas()
         dst_srid = canvas.mapSettings().destinationCrs().authid()
         transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(src_epsg),
-                                           QgsCoordinateReferenceSystem(dst_srid))
+                                           QgsCoordinateReferenceSystem(dst_srid),
+                                           canvas.mapSettings().transformContext())
         # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
         location_geom.transform(transform)
         location_centroid = location_geom.centroid().asPoint()

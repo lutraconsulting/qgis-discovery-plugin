@@ -1,6 +1,6 @@
 [general]
 name=Discovery
-qgisMinimumVersion=2.99
+qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
 version=2.1.0

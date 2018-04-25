@@ -14,7 +14,7 @@ import os
 
 from PyQt5.QtCore import QSettings, Qt, QUrl
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QDialogButtonBox
+from PyQt5.QtWidgets import QApplication, QDialogButtonBox
 from PyQt5 import uic
 
 from . import dbutils
