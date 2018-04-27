@@ -21,6 +21,7 @@ import time
 import os.path
 
 from qgis.core import (
+    Qgis,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsExpression,
@@ -31,7 +32,7 @@ from qgis.core import (
     QgsGeometry,
     QgsRectangle,
 )
-from qgis.gui import QgsVertexMarker, QgsFilterLineEdit, QgsMessageBar
+from qgis.gui import QgsVertexMarker, QgsFilterLineEdit
 from qgis.utils import iface
 
 from . import config_dialog
@@ -403,7 +404,7 @@ class DiscoveryPlugin:
 
         if len(self.conn_info) == 0:
             iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
-                                           level=QgsMessageBar.CRITICAL)
+                                           level=Qgis.Critical)
             return
 
         self.make_enabled(True)
@@ -413,7 +414,7 @@ class DiscoveryPlugin:
             expr = QgsExpression(scale_expr)
             if expr.hasParserError():
                 iface.messageBar().pushMessage("Discovery", "Invalid scale expression: " + expr.parserErrorString(),
-                                               level=QgsMessageBar.WARNING)
+                                               level=Qgis.Warning)
             else:
                 self.scale_expr = scale_expr
                 self.extra_expr_columns += expr.referencedColumns()
@@ -423,7 +424,7 @@ class DiscoveryPlugin:
             expr = QgsExpression(bbox_expr)
             if expr.hasParserError():
                 iface.messageBar().pushMessage("Discovery", "Invalid bbox expression: " + expr.parserErrorString(),
-                                               level=QgsMessageBar.WARNING)
+                                               level=Qgis.Warning)
             else:
                 self.bbox_expr = bbox_expr
                 self.extra_expr_columns += expr.referencedColumns()
