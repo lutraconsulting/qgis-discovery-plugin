@@ -128,6 +128,10 @@ class DiscoveryPlugin:
         self.marker2.setVisible(False)
         self.is_displayed = False
 
+        self.rubber_band = QgsRubberBand(iface.mapCanvas(), False)
+        self.rubber_band.setVisible(False)
+        self.rubber_band.setWidth(3)
+        self.rubber_band.setColor(QColor(226, 27, 28))
 
     def initGui(self):
 
@@ -300,7 +304,13 @@ class DiscoveryPlugin:
         location_centroid = location_geom.centroid().asPoint()
 
         # show temporary marker
-        self.show_marker(location_centroid)
+        if location_geom.type() == QgsWkbTypes.PointGeometry:
+            self.show_marker(location_centroid)
+        elif location_geom.type() == QgsWkbTypes.LineGeometry:
+            self.show_line_rubber_band(location_geom)
+        else:
+            #unsupported geometry type
+            pass
 
         # Adjust map canvas extent
         zoom_method = 'Move and Zoom'
@@ -368,6 +378,7 @@ class DiscoveryPlugin:
 
         if self.is_displayed:
             self.hide_marker()
+            self.hide_rubber_band()
             self.is_displayed = False
 
         self.make_enabled(False)   # assume the config is invalid first
@@ -449,3 +460,26 @@ class DiscoveryPlugin:
         else:
             self.marker.setVisible(False)
             self.marker2.setVisible(False)
+
+    def show_line_rubber_band(self, geom):
+        self.rubber_band.reset(geom.type())
+        self.rubber_band.setToGeometry(geom, None)
+        self.rubber_band.setVisible(True)
+        self.rubber_band.setOpacity(1.0)
+        self.rubber_band.show()
+        if self.display_time == -1:
+            self.is_displayed = True
+        else:
+            QTimer.singleShot(self.display_time, self.hide_rubber_band)
+        pass
+
+    def hide_rubber_band(self):
+        opacity = self.rubber_band.opacity()
+        if opacity > 0.:
+            # produce a fade out effect
+            opacity -= 0.1
+            self.rubber_band.setOpacity(opacity)
+            QTimer.singleShot(100, self.hide_rubber_band)
+        else:
+            self.rubber_band.setVisible(False)
+            self.rubber_band.hide()
