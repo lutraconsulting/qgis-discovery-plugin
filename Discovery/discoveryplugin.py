@@ -329,7 +329,8 @@ class DiscoveryPlugin:
         # show temporary marker
         if location_geom.type() == QgsWkbTypes.PointGeometry:
             self.show_marker(location_centroid)
-        elif location_geom.type() == QgsWkbTypes.LineGeometry:
+        elif location_geom.type() == QgsWkbTypes.LineGeometry or \
+            location_geom.type() == QgsWkbTypes.PolygonGeometry:
             self.show_line_rubber_band(location_geom)
         else:
             #unsupported geometry type
@@ -347,9 +348,14 @@ class DiscoveryPlugin:
             else:
                 # bbox is not available - so let's just use defined scale
                 # compute target scale. If the result is 2000 this means the target scale is 1:2000
-                scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)
-                rect = canvas.mapSettings().extent()
-                rect.scale(scale_denom / canvas.scale(), location_centroid)
+                rect = location_geom.boundingBox()
+                if rect.isEmpty():
+                    scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)
+                    rect = canvas.mapSettings().extent()
+                    rect.scale(scale_denom / canvas.scale(), location_centroid)
+                else:
+                    # enlarge geom bbox to have some margin
+                    rect.scale(1.2)
             canvas.setExtent(rect)
         elif zoom_method == 'Move':
             current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
