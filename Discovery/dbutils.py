@@ -86,7 +86,7 @@ def list_tables(cursor, schema):
     sql = """SELECT pg_class.relname
                 FROM pg_class
                 JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
-                WHERE pg_class.relkind IN ('v', 'r') AND nspname = '%s'
+                WHERE pg_class.relkind IN ('v', 'r', 'm') AND nspname = '%s'
                 ORDER BY nspname, relname""" % _quote_str(schema)
     cursor.execute(sql)
     names = map(lambda row: row[0], cursor.fetchall())
