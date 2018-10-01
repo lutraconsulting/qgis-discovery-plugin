@@ -87,6 +87,8 @@ def bbox_str_to_rectangle(bbox_str):
         return None
 
 def delete_config_from_settings(key, settings):
+    settings.remove(key + "data_type")
+    settings.remove(key + "file")
     settings.remove(key + "connection")
     settings.remove(key + "schema")
     settings.remove(key + "table")
@@ -176,6 +178,8 @@ class DiscoveryPlugin:
             settings.setValue("config_list", config_list)
             self.config_combo.addItem(key)
 
+            settings.setValue(key + "data_type", settings.value("data_type"))
+            settings.setValue(key + "file", settings.value("file"))
             settings.setValue(key + "connection", settings.value("connection"))
             settings.setValue(key + "schema", settings.value("schema"))
             settings.setValue(key + "table", settings.value("table"))
