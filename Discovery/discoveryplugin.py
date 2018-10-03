@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import QAction, QComboBox, QCompleter
 
 import time
 import os.path
+from Discovery import gpkg_utils
 
 from qgis.core import (
     Qgis,
@@ -249,6 +250,7 @@ class DiscoveryPlugin:
         model = self.completer.model()
         model.setStringList([])
 
+    # ->perform search
     def on_search_text_changed(self, new_search_text):
         """
         This function is called whenever the user modified the search text
@@ -266,17 +268,22 @@ class DiscoveryPlugin:
             self.clear_suggestions()
             return
 
-        query_text, query_dict = dbutils.get_search_sql(
-                                    new_search_text,
-                                    self.postgisgeomcolumn,
-                                    self.postgissearchcolumn,
-                                    self.echosearchcolumn,
-                                    self.postgisdisplaycolumn,
-                                    self.extra_expr_columns,
-                                    self.postgisschema,
-                                    self.postgistable)
+        if self.data_type == config_dialog.DataType.POSTGRES.value:
+            query_text, query_dict = dbutils.get_search_sql(
+                                        new_search_text,
+                                        self.postgisgeomcolumn,
+                                        self.postgissearchcolumn,
+                                        self.echosearchcolumn,
+                                        self.postgisdisplaycolumn,
+                                        self.extra_expr_columns,
+                                        self.postgisschema,
+                                        self.postgistable)
+            self.schedule_search(query_text, query_dict)
 
-        self.schedule_search(query_text, query_dict)
+        elif self.data_type == config_dialog.DataType.GPKG.value:
+            #gpkg_utils.get_search_sql("/Users/vsklencar/lutra/plugins/data/discovery_test1.gpkg")
+            print("GPKG search")
+            gpkg_utils.search_sqlite(self.file)
 
     def do_db_operations(self):
         if self.next_query_time is not None and self.next_query_time < time.time():
@@ -290,7 +297,8 @@ class DiscoveryPlugin:
                 self.db_conn = None
 
     def perform_search(self):
-
+        # TODO
+        #if self.data_type == config_dialog.DataType.POSTGRES.value:
         cur = self.get_db_cur()
         cur.execute(self.query_sql, self.query_dict)
 
@@ -395,6 +403,8 @@ class DiscoveryPlugin:
         settings.beginGroup("/Discovery")
 
         connection = settings.value(key + "connection", "", type=str)
+        self.data_type = settings.value(key + "data_type", "", type=str)
+        self.file = settings.value(key + "file", "", type=str)
         self.postgisschema = settings.value(key + "schema", "", type=str)
         self.postgistable = settings.value(key + "table", "", type=str)
         self.postgissearchcolumn = settings.value(key + "search_column", "", type=str)
@@ -415,20 +425,25 @@ class DiscoveryPlugin:
             self.is_displayed = False
 
         self.make_enabled(False)   # assume the config is invalid first
+
         self.db_conn = None
-        self.conn_info = dbutils.get_postgres_conn_info(connection)
+        if self.data_type == config_dialog.DataType.POSTGRES.value:
+            self.conn_info = dbutils.get_postgres_conn_info(connection)
+
+            if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
+                    len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
+                return
+
+            if len(self.conn_info) == 0:
+                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
+                                               level=Qgis.Critical)
+                return
+        elif self.data_type == config_dialog.DataType.GPKG.value:
+            #self.layer = QgsVectorLayer(self.file)
+            self.conn_info = None
         self.extra_expr_columns = []
         self.scale_expr = None
         self.bbox_expr = None
-
-        if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
-           len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
-            return
-
-        if len(self.conn_info) == 0:
-            iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
-                                           level=Qgis.Critical)
-            return
 
         self.make_enabled(True)
 

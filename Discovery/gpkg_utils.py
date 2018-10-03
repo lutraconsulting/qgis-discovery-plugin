@@ -1,5 +1,6 @@
 from osgeo import ogr, gdal
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsVectorLayer, QgsDataSourceUri
+from qgis.PyQt.QtSql import QSqlDatabase
 
 def list_gpkg_layers(pckg_path):
     layer_names = []
@@ -27,3 +28,41 @@ def list_gpkg_fields(gpkg_path, name, bar_warning=None):
         if bar_warning:
             bar_warning('Cannot read GeoPackage layer!')
         return []
+
+
+def get_search_sql(gpkg_path):
+    gpkg_dr = ogr.GetDriverByName( 'GPKG' )
+    gpkg_ds = gpkg_dr.Open(gpkg_path, update=1)
+    result_set = gpkg_ds.ExecuteSQL("SELECT * FROM test1;")
+    f = result_set.GetNextFeature()
+    geom_read = f.GetGeometryRef()
+    print(geom_read)
+
+    # geom = ogr.CreateGeometryFromWkt('LINESTRING(5 5,10 5,10 10,5 10)')
+    # feat = ogr.Feature(lyr.GetLayerDefn())
+    # feat.SetGeometry(geom)
+
+    gpkg_ds.ReleaseResultSet(result_set)
+    pass
+
+# TODO @vsklencar
+def search_sqlite(path):
+    # Get file path
+    #pass
+    #uri = QgsDataSourceUri(layer.dataProvider().dataSourceUri())
+    # Create DB connexion to do SQL
+    db = QSqlDatabase.addDatabase("QSQLITE");
+    # Reuse the path to DB to set database name
+    db.setDatabaseName(path)
+    # Open the connection
+    db.open()
+    # query the table
+    query = db.exec_("""select * from test1""")
+    # Play with results (not efficient, just for demo)
+    while query.next():
+        values = []
+        record = query.record()
+        for index in range(record.count()):
+            # We exclude the geometry to join attributes data
+            values.append(str(record.value(index)))
+        print (';').join(values)
