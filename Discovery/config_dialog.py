@@ -46,7 +46,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.configOptions.currentIndexChanged.connect(self.config_selection_changed)
         self.cboName.textChanged.connect(self.validate_nameField)
         self.fileButton.clicked.connect(self.browse_file_db)
-        self.cboFile.currentIndexChanged.connect(self.populate_gpkg_tables)
+        self.cboFile.currentIndexChanged.connect(self.populate_tables)
+        self.cboSchema.currentIndexChanged.connect(self.populate_tables)
 
         self.postgresButton.toggled.connect(self.data_type_changed)
 
@@ -119,8 +120,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         else:
             self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
-    def set_form_fields(self, key = ""):
-
+    def set_form_fields(self, key="", data_type=None):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -130,11 +130,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         else:
             self.cboName.setText("")
 
-        #self.data_type = settings.value(key + "data_type", DataType.POSTGRES.value)
+        self.data_type = data_type if data_type is not None else settings.value(key + "data_type", DataType.POSTGRES.value)
         if str(self.data_type) == str(DataType.POSTGRES.value):
             # data type button
-            self.postgresButton.setChecked(True)
-
+            if not self.postgresButton.isChecked():
+                self.postgresButton.setChecked(True)
             # connections
             all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
             for conn in dbutils.get_postgres_connections():
@@ -145,15 +145,13 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.connect_db()
             # schemas
             self.init_combo_from_settings(self.cboSchema, key + "schema")
-            self.cboSchema.currentIndexChanged.connect(self.populate_tables)
             self.populate_tables()
         elif str(self.data_type) == str(DataType.GPKG.value):
             # data type button
-            self.geopackageButton.setChecked(True)
-
+            if not self.geopackageButton.isChecked():
+                self.geopackageButton.setChecked(True)
             # db file
             self.init_combo_from_settings(self.cboFile, key + "file")
-            self.cboFile.currentIndexChanged.connect(self.populate_tables)
             self.populate_tables()
         # tables
         self.init_combo_from_settings(self.cboTable, key + "table")
@@ -161,7 +159,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.populate_columns()
         # columns
         self.init_combo_from_settings(self.cboSearchColumn, key + "search_column")
-        if str(self.data_type) == DataType.POSTGRES.value:
+        if str(self.data_type) == str(DataType.POSTGRES.value):
             self.cboGeomColumn.setEnabled(True)
             self.init_combo_from_settings(self.cboGeomColumn, key + "geom_column")
         elif str(self.data_type) == str(DataType.GPKG.value):
@@ -251,7 +249,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             columns = dbutils.list_columns(self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText())
         else:
             columns=[]
-        print("set columns ")
         for cbo in cbos:
             for column in columns:
                 cbo.addItem(column)
@@ -411,15 +408,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.set_form_fields(self.key)
 
     def data_type_changed(self):
-        print('data_type_changed')
-        if self.postgresButton.isChecked():
-            self.data_type = DataType.POSTGRES.value
-        elif self.geopackageButton.isChecked():
-            self.data_type = DataType.GPKG.value
-        else:
-            self.data_type = DataType.POSTGRES.value
-
-        self.config_selection_changed()
+        self.set_form_fields(self.key, DataType.POSTGRES.value if self.postgresButton.isChecked() else DataType.GPKG.value)
 
     def browse_file_db(self):
         dialog = QFileDialog(self)
@@ -437,18 +426,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             return DataType.POSTGRES.value
         else:
             return DataType.GPKG.value
-
-    # VECTOR LAYER
-
-    # WORKING WITH GEOPACKAGE
-    def populate_gpkg_tables(self):
-        path = self.cboFile.currentText()
-        layer_names = gpkg_utils.list_gpkg_layers(path)
-        self.cboTable.clear()
-        self.cboTable.addItem('')
-        for gpkg_layer in layer_names:
-            self.cboTable.addItem(gpkg_layer)
-
 
     def show_help(self):
         QDesktopServices.openUrl(QUrl("http://www.lutraconsulting.co.uk/products/discovery/"))

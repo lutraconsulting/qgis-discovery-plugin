@@ -285,18 +285,15 @@ class DiscoveryPlugin:
 
         elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
             display_fields = self.postgisdisplaycolumn.split(",")
-            print(display_fields)
-            result = gpkg_utils.search_gpkg(new_search_text, self.postgissearchcolumn, display_fields, self.layer)
-            print(len(result))
+            result = gpkg_utils.search_gpkg(new_search_text, self.postgissearchcolumn, self.echosearchcolumn, display_fields, self.extra_expr_columns, self.layer)
             suggestions = []
             self.search_results = []
 
             for row in result:
                 geom, epsg, suggestion_text = row[0], row[1], ", ".join(row[2])
                 extra_data = {}
-                # TODO @vsklencar
-                # for idx, extra_col in enumerate(self.extra_expr_columns):
-                #     extra_data[extra_col] = row[3 + idx]
+                for idx, extra_col in enumerate(self.extra_expr_columns):
+                    extra_data[extra_col] = row[3 + idx]
                 self.search_results.append((geom, epsg, extra_data))
                 suggestions.append(suggestion_text)
                 #
@@ -330,7 +327,6 @@ class DiscoveryPlugin:
                 extra_data[extra_col] = row[3+idx]
             self.search_results.append((geom, epsg, extra_data))
             suggestions.append(suggestion_text)
-        print("suggestions")
         model = self.completer.model()
         model.setStringList(suggestions)
         self.completer.complete()
@@ -346,7 +342,6 @@ class DiscoveryPlugin:
         self.select_result(self.search_results[result_index.row()])
 
     def select_result(self, result_data):
-        print("select_result")
         geometry_text, src_epsg, extra_data = result_data
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
