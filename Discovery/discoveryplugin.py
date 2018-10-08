@@ -263,8 +263,6 @@ class DiscoveryPlugin:
             self.clear_suggestions()
             return
 
-        print(self.data_type)
-        print(config_dialog.DataType.POSTGRES.value)
         if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
             query_text, query_dict = dbutils.get_search_sql(
                                         new_search_text,
@@ -290,7 +288,6 @@ class DiscoveryPlugin:
                     extra_data[extra_col] = row[3 + idx]
                 self.search_results.append((geom, epsg, extra_data))
                 suggestions.append(suggestion_text)
-                #
             model = self.completer.model()
             model.setStringList(suggestions)
             self.completer.complete()
