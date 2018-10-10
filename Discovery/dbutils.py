@@ -13,7 +13,7 @@
 from PyQt5.QtCore import QSettings
 
 import psycopg2
-
+import pyodbc
 
 def get_connection(conn_info):
     """ Connect to the database using conn_info dict:
