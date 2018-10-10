@@ -17,9 +17,10 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QDialogButtonBox, QMessageBox, QFileDialog, QDialog
 from PyQt5 import uic
 from enum import Enum
-from Discovery import gpkg_utils
 from . import dbutils
 from . import discoveryplugin
+from . import gpkg_utils
+from . import mssql_utils
 
 plugin_dir = os.path.dirname(__file__)
 
@@ -27,7 +28,8 @@ uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_di
 
 class DataType(Enum):
     POSTGRES = 0
-    GPKG = 1
+    MSSQL = 1
+    GPKG = 2
 
 class ConfigDialog(qtBaseClass, uiConfigDialog):
 
@@ -49,6 +51,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.cboFile.currentIndexChanged.connect(self.populate_tables)
         self.cboSchema.currentIndexChanged.connect(self.populate_tables)
         self.postgresButton.toggled.connect(self.data_type_changed)
+        self.geopackageButton.toggled.connect(self.data_type_changed)
+        self.mssqlButton.toggled.connect(self.data_type_changed)
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -119,6 +123,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         else:
             self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
+    # TODO refactor
     def set_form_fields(self, key="", data_type=None):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         settings = QSettings()
@@ -130,6 +135,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.cboName.setText("")
 
         self.data_type = data_type if data_type is not None else settings.value(key + "data_type", DataType.POSTGRES.value)
+        print("set data type!!!!!", key, self.data_type)
         if str(self.data_type) == str(DataType.POSTGRES.value):
             # data type button
             if not self.postgresButton.isChecked():
@@ -152,13 +158,22 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             # db file
             self.init_combo_from_settings(self.cboFile, key + "file")
             self.populate_tables()
+        else:
+            print("mssql button check")
+            if not self.mssqlButton.isChecked():
+                self.mssqlButton.setChecked(True)
+            # db file
+            self.connect_db()
+            # schemas
+            self.init_combo_from_settings(self.cboSchema, key + "schema")
+            self.populate_tables()
         # tables
         self.init_combo_from_settings(self.cboTable, key + "table")
         self.cboTable.currentIndexChanged.connect(self.populate_columns)
         self.populate_columns()
         # columns
         self.init_combo_from_settings(self.cboSearchColumn, key + "search_column")
-        if str(self.data_type) == str(DataType.POSTGRES.value):
+        if str(self.data_type) == str(DataType.POSTGRES.value) or str(self.data_type) == str(DataType.MSSQL.value):
             self.label_3.setText("Table")
             self.cboGeomColumn.setEnabled(True)
             self.init_combo_from_settings(self.cboGeomColumn, key + "geom_column")
@@ -208,7 +223,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def connect_db(self):
         name = self.cboConnection.currentText()
         try:
-            self.conn = dbutils.get_connection(dbutils.get_postgres_conn_info(name))
+            if str(self.data_type) == str(DataType.POSTGRES.value):
+                self.conn = dbutils.get_connection(dbutils.get_postgres_conn_info(name))
+            elif str(self.data_type) == str(DataType.MSSQL.value):
+                # TODO init from cboConnection
+                self.conn = mssql_utils.get_mssql_conn()
             self.lblMessage.setText("")
         except Exception as e:
             self.conn = None
@@ -216,10 +235,19 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.populate_schemas()
 
     def populate_schemas(self):
+        print("populate_schemas", self.conn, self.conn is None)
         self.cboSchema.clear()
         self.cboSchema.addItem('')
         if self.conn is None: return
-        for schema in dbutils.list_schemas(self.conn.cursor()):
+
+        if str(self.data_type) == str(DataType.POSTGRES.value):
+            schemas = dbutils.list_schemas(self.conn.cursor())
+        elif str(self.data_type) == str(DataType.MSSQL.value):
+            schemas = mssql_utils.list_schemas(self.conn)
+        else:
+            schemas = []
+        print("populate_schemas", self.data_type, schemas)
+        for schema in schemas:
             self.cboSchema.addItem(schema)
 
     def populate_tables(self):
@@ -231,7 +259,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         elif str(self.data_type) == str(DataType.GPKG.value):
             tables = gpkg_utils.list_gpkg_layers(self.cboFile.currentText())
         else:
-            tables = []
+            tables = mssql_utils.list_tables(self.conn)
         for table in tables:
             self.cboTable.addItem(table)
 
@@ -248,18 +276,23 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             if self.conn is None: return
             columns = dbutils.list_columns(self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText())
         else:
-            columns=[]
+            columns= mssql_utils.list_columns(self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText())
         for cbo in cbos:
             for column in columns:
                 cbo.addItem(column)
 
     def enable_fields_for_data_type(self):
         widgets = {DataType.POSTGRES.value: [self.cboConnection, self.cboSchema, self.label, self.label_2],
+                   DataType.MSSQL.value: [self.cboConnection, self.cboSchema, self.label, self.label_2],
                     DataType.GPKG.value: [self.cboFile, self.label_10, self.fileButton]}
-        for type in widgets.keys():
+        curr_type = self.data_type
+        if curr_type == DataType.MSSQL.value:
+            curr_type = DataType.POSTGRES.value
+        for data_type in [DataType.POSTGRES.value, DataType.GPKG.value]:
             for w in widgets[type]:
-                w.setEnabled(str(type) == str(self.data_type))
-                w.setVisible(str(type) == str(self.data_type))
+                w.setEnabled(str(data_type) == str(curr_type))
+                w.setVisible(str(data_type) == str(curr_type))
+
 
     def validate_key(self, key, config_list):
 
@@ -406,8 +439,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.key = self.configOptions.currentText()
         self.set_form_fields(self.key)
 
-    def data_type_changed(self):
-        self.set_form_fields(self.key, DataType.POSTGRES.value if self.postgresButton.isChecked() else DataType.GPKG.value)
+    def data_type_changed(self, active):
+        if not active: return
+        self.set_form_fields(self.key, self.get_data_type())
 
     def browse_file_db(self):
         dialog = QFileDialog(self)
@@ -423,8 +457,10 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def get_data_type(self):
         if self.postgresButton.isChecked():
             return DataType.POSTGRES.value
-        else:
+        elif self.geopackageButton.isChecked():
             return DataType.GPKG.value
+        else:
+            return DataType.MSSQL.value
 
     def show_help(self):
         QDesktopServices.openUrl(QUrl("http://www.lutraconsulting.co.uk/products/discovery/"))

@@ -370,6 +370,19 @@
        <bool>false</bool>
       </property>
      </widget>
+     <widget class="QRadioButton" name="mssqlButton">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>10</y>
+        <width>101</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>MS SQL</string>
+      </property>
+     </widget>
     </widget>
    </item>
    <item row="3" column="0">

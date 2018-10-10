@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QAction, QComboBox, QCompleter
 
 import time
 import os.path
-from Discovery import gpkg_utils
+from Discovery import gpkg_utils, mssql_utils
 
 from qgis.core import (
     Qgis,
@@ -280,6 +280,7 @@ class DiscoveryPlugin:
                                         self.postgisschema,
                                         self.postgistable)
             self.schedule_search(query_text, query_dict)
+            print(query_text)
 
         elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
             display_fields = self.postgisdisplaycolumn.split(",")
@@ -297,6 +298,18 @@ class DiscoveryPlugin:
             model = self.completer.model()
             model.setStringList(suggestions)
             self.completer.complete()
+        elif str(self.data_type) == str(config_dialog.DataType.MSSQL.value):
+            query_text, query_dict = mssql_utils.get_search_sql(
+                new_search_text,
+                self.postgisgeomcolumn,
+                self.postgissearchcolumn,
+                self.echosearchcolumn,
+                self.postgisdisplaycolumn,
+                self.extra_expr_columns,
+                self.postgisschema,
+                self.postgistable)
+            print(query_text)
+            self.schedule_search(query_text, query_dict)
 
 
     def do_db_operations(self):
@@ -396,6 +409,7 @@ class DiscoveryPlugin:
     def reset_line_edit_after_move(self):
         self.search_line_edit.setText(self.query_text)
 
+    # TODO data type @vsklencar
     def get_db_cur(self):
         # Create a new new connection if required
         if self.db_conn is None:
@@ -451,6 +465,9 @@ class DiscoveryPlugin:
                 iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
                                                level=Qgis.Critical)
                 return
+        if str(self.data_type) == str(config_dialog.DataType.MSSQL.value):
+            self.db_conn = mssql_utils.get_mssql_conn()
+            self.layer = None
         elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
             self.layer =QgsVectorLayer(self.file + '|layername=' + self.postgistable, self.postgistable, 'ogr')
             self.conn_info = None
