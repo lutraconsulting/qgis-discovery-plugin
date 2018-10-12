@@ -274,7 +274,6 @@ class DiscoveryPlugin:
                                         self.postgisschema,
                                         self.postgistable)
             self.schedule_search(query_text, query_dict)
-            print(query_text)
 
         elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
             display_fields = self.postgisdisplaycolumn.split(",")
@@ -302,7 +301,6 @@ class DiscoveryPlugin:
                 self.extra_expr_columns,
                 self.postgisschema,
                 self.postgistable)
-            print(query_text)
             self.schedule_search(query_text, query_dict)
 
 
@@ -318,13 +316,17 @@ class DiscoveryPlugin:
                 self.db_conn = None
 
     def perform_search(self):
+        if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
 
-        cur = self.get_db_cur()
-        cur.execute(self.query_sql, self.query_dict)
+            cur = self.get_db_cur()
+            cur.execute(self.query_sql, self.query_dict)
+            result_set = cur.fetchall()
+        else:
+            result_set = mssql_utils.execute(self.query_sql, self.query_dict)
 
         self.search_results = []
         suggestions = []
-        for row in cur.fetchall():
+        for row in result_set:
             geom, epsg, suggestion_text = row[0], row[1], row[2]
             extra_data = {}
             for idx, extra_col in enumerate(self.extra_expr_columns):
@@ -391,11 +393,13 @@ class DiscoveryPlugin:
     def reset_line_edit_after_move(self):
         self.search_line_edit.setText(self.query_text)
 
-    # TODO data type @vsklencar
     def get_db_cur(self):
         # Create a new new connection if required
         if self.db_conn is None:
-            self.db_conn = dbutils.get_connection(self.conn_info)
+            if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
+                self.db_conn = dbutils.get_connection(self.conn_info)
+            else:
+                self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
         return self.db_conn.cursor()
 
     def change_configuration(self):
@@ -447,8 +451,17 @@ class DiscoveryPlugin:
                                                level=Qgis.Critical)
                 return
         if str(self.data_type) == str(config_dialog.DataType.MSSQL.value):
-            self.db_conn = mssql_utils.get_mssql_conn()
+            self.conn_info = mssql_utils.get_mssql_conn_info(connection)
             self.layer = None
+
+            if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
+                    len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
+                return
+
+            if len(self.conn_info) == 0:
+                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
+                                               level=Qgis.Critical)
+                return
         elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
             self.layer =QgsVectorLayer(self.file + '|layername=' + self.postgistable, self.postgistable, 'ogr')
             self.conn_info = None
