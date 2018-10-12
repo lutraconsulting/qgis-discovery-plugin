@@ -135,7 +135,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.cboName.setText("")
 
         self.data_type = data_type if data_type is not None else settings.value(key + "data_type", DataType.POSTGRES.value)
-        print("set data type!!!!!", key, self.data_type)
         if str(self.data_type) == str(DataType.POSTGRES.value):
             # data type button
             if not self.postgresButton.isChecked():
@@ -159,9 +158,21 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.init_combo_from_settings(self.cboFile, key + "file")
             self.populate_tables()
         else:
-            print("mssql button check")
+            # TODO refactot @vsklencar
             if not self.mssqlButton.isChecked():
                 self.mssqlButton.setChecked(True)
+                # connections
+            all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
+            for conn in mssql_utils.get_mssql_connections():
+                if conn not in all_cons:
+                    self.cboConnection.addItem(conn)
+            self.init_combo_from_settings(self.cboConnection, key + "connection")
+            self.cboConnection.currentIndexChanged.connect(self.connect_db)
+            self.connect_db()
+            # schemas
+            self.init_combo_from_settings(self.cboSchema, key + "schema")
+            self.populate_tables()
+
             # db file
             self.connect_db()
             # schemas
@@ -227,7 +238,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
                 self.conn = dbutils.get_connection(dbutils.get_postgres_conn_info(name))
             elif str(self.data_type) == str(DataType.MSSQL.value):
                 # TODO init from cboConnection
-                self.conn = mssql_utils.get_mssql_conn()
+                self.conn = mssql_utils.get_mssql_conn(mssql_utils.get_mssql_conn_info(name))
             self.lblMessage.setText("")
         except Exception as e:
             self.conn = None
@@ -235,7 +246,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.populate_schemas()
 
     def populate_schemas(self):
-        print("populate_schemas", self.conn, self.conn is None)
         self.cboSchema.clear()
         self.cboSchema.addItem('')
         if self.conn is None: return
@@ -243,10 +253,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if str(self.data_type) == str(DataType.POSTGRES.value):
             schemas = dbutils.list_schemas(self.conn.cursor())
         elif str(self.data_type) == str(DataType.MSSQL.value):
-            schemas = mssql_utils.list_schemas(self.conn)
+            schemas = mssql_utils.list_schemas()
         else:
             schemas = []
-        print("populate_schemas", self.data_type, schemas)
         for schema in schemas:
             self.cboSchema.addItem(schema)
 
@@ -259,7 +268,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         elif str(self.data_type) == str(DataType.GPKG.value):
             tables = gpkg_utils.list_gpkg_layers(self.cboFile.currentText())
         else:
-            tables = mssql_utils.list_tables(self.conn)
+            tables = mssql_utils.list_tables()
         for table in tables:
             self.cboTable.addItem(table)
 
@@ -276,7 +285,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             if self.conn is None: return
             columns = dbutils.list_columns(self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText())
         else:
-            columns= mssql_utils.list_columns(self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText())
+            columns= mssql_utils.list_columns(self.cboSchema.currentText(), self.cboTable.currentText())
         for cbo in cbos:
             for column in columns:
                 cbo.addItem(column)
@@ -289,7 +298,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if curr_type == DataType.MSSQL.value:
             curr_type = DataType.POSTGRES.value
         for data_type in [DataType.POSTGRES.value, DataType.GPKG.value]:
-            for w in widgets[type]:
+            for w in widgets[data_type]:
                 w.setEnabled(str(data_type) == str(curr_type))
                 w.setVisible(str(data_type) == str(curr_type))
 

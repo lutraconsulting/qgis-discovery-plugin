@@ -1,57 +1,74 @@
-import pyodbc
+from PyQt5.QtCore import QSettings
+from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from . import dbutils
 
-def get_mssql_conn():
 
-    # server = 'myserver,port' # to specify an alternate port
-    server = 'localhost,1433'
-    database = 'dis1'
-    username = 'SA'
-    password = 'post123GRES'
-    conn = pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
-    return conn
+def get_mssql_connections():
+    """ Read PostgreSQL connection names from QSettings stored by QGIS
+    """
+    settings = QSettings()
+    settings.beginGroup(u"/mssql/connections/")
+    return settings.childGroups()
 
 
-def list_schemas(conn):
+def get_mssql_conn_info(connection):
+    settings = QSettings()
+    settings.beginGroup(u"/mssql/connections/" + connection)
+    res = settings.value('/service', "")
+    return settings.value('/service', "")
+
+
+def get_mssql_conn(conn_service):
+    db = QSqlDatabase.addDatabase("QODBC3")
+    db.setDatabaseName(conn_service)
+    res = db.open()
+    return db
+
+
+def list_schemas():
     """ Get list of schema names
        """
-    query = """SELECT schema_name
+    query = QSqlQuery()
+    query_text = """SELECT schema_name
             FROM information_schema.schemata
             WHERE schema_owner = 'dbo';"""
-    cursor = conn.cursor()
-    cursor.execute(query)
-    names = map(lambda row: row[0], cursor.fetchall())
+    query.exec(query_text)
+    names = []
+    while query.next():
+        names.append(query.value(0))
     return sorted(names)
 
 
-def list_tables(conn):
-    query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
-    cursor = conn.cursor()
-    cursor.execute(query)
+def list_tables():
+    query_text = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+    query = QSqlQuery()
+    query.exec(query_text)
+    names = []
+    while query.next():
+        names.append(query.value(0))
+    return names
 
-    names = map(lambda row: row[0], cursor.fetchall())
-    return sorted(names)
 
-
-def list_columns(cursor, schema, table):
-    query = """SELECT COLUMN_NAME
+def list_columns(schema, table):
+    query_text = """SELECT COLUMN_NAME
                 FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_NAME = '%s' AND TABLE_SCHEMA ='%s';""" % (dbutils._quote_str(table), dbutils._quote_str(schema))
-    cursor.execute(query)
+    query = QSqlQuery()
+    query.exec(query_text)
+    names = []
+    while query.next():
+        names.append(query.value(0))
+    return names
 
-    names = map(lambda row: row[0], cursor.fetchall())
-    return sorted(names)
 
 def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table):
     wildcarded_search_string = ''
     for part in search_text.split():
         wildcarded_search_string += '%' + part
     wildcarded_search_string += '%'
-    query_dict = wildcarded_search_string
-
+    query_dict = {":search_string": wildcarded_search_string}
     query_text = """ SELECT
-                            "%s" AS geom,
+                            "%s".STAsText() AS geom,
                             '%s' AS epsg,
                      """ % (geom_column, "EPSG:27700")
 
@@ -70,14 +87,30 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     query_text += """
                       FROM
                             "%s"."%s"
-                         WHERE
-                            "%s" LIKE
+                      WHERE "%s" LIKE
                       """ % (schema, table, search_column)
-    query_text += """   ?
-                      """
+    query_text += """   '%s'
+                      """ % str(wildcarded_search_string)
     query_text += """ORDER BY
                             "%s"
                       """ % search_column
 
     return query_text, query_dict
+
+
+def execute(query_text, query_dict):
+    query = QSqlQuery()
+    query.exec(query_text)
+    #query.prepare(query_text)
+    #for key in query_dict.keys():
+    #    query.bindValue(key, query_dict[key])
+    result_set = []
+    while (query.next()):
+        row = []
+        row.append(query.value('geom'))
+        row.append(query.value('epsg'))
+        row.append(query.value('suggestion_string'))
+        result_set.append(row)
+    print(result_set)
+    return result_set
 
