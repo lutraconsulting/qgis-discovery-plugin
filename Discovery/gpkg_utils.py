@@ -33,7 +33,11 @@ def list_gpkg_fields(gpkg_path, name, bar_warning=None):
 
 
 def search_gpkg(search_text, search_field, echo_search_column, display_fields, extra_expr_columns, layer):
-    expr_str = "{0} ILIKE '%{1}%'".format(search_field, search_text)
+    wildcarded_search_string = ''
+    for part in search_text.split():
+        wildcarded_search_string += '%' + part
+    wildcarded_search_string += '%'
+    expr_str = "{0} ILIKE '{1}'".format(search_field, wildcarded_search_string)
     expr = QgsExpression(expr_str)
     it = layer.getFeatures(QgsFeatureRequest(expr))
     result = []

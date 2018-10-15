@@ -14,14 +14,13 @@ def get_mssql_connections():
 def get_mssql_conn_info(connection):
     settings = QSettings()
     settings.beginGroup(u"/mssql/connections/" + connection)
-    res = settings.value('/service', "")
     return settings.value('/service', "")
 
 
 def get_mssql_conn(conn_service):
     db = QSqlDatabase.addDatabase("QODBC3")
     db.setDatabaseName(conn_service)
-    res = db.open()
+    db.open()
     return db
 
 
@@ -69,7 +68,7 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     query_dict = {":search_string": wildcarded_search_string}
     query_text = """ SELECT
                             "%s".STAsText() AS geom,
-                            '%s' AS epsg,
+                            "%s" AS epsg,
                      """ % (geom_column, "EPSG:27700")
 
     info_columns = []
@@ -89,8 +88,8 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
                             "%s"."%s"
                       WHERE "%s" LIKE
                       """ % (schema, table, search_column)
-    query_text += """   '%s'
-                      """ % str(wildcarded_search_string)
+    query_text += """   :search_string
+                      """
     query_text += """ORDER BY
                             "%s"
                       """ % search_column
@@ -100,16 +99,16 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
 
 def execute(query_text, query_dict):
     query = QSqlQuery()
-    query.exec(query_text)
-    #query.prepare(query_text)
-    #for key in query_dict.keys():
-    #    query.bindValue(key, query_dict[key])
+    query.prepare(query_text)
+    for key in query_dict.keys():
+       query.bindValue(key, query_dict[key])
+    query.exec_()
+    record = query.record()
     result_set = []
-    while (query.next()):
+    while query.next():
         row = []
-        row.append(query.value('geom'))
-        row.append(query.value('epsg'))
-        row.append(query.value('suggestion_string'))
+        for i in range(record.count()):
+            row.append(query.value(i))
         result_set.append(row)
     print(result_set)
     return result_set

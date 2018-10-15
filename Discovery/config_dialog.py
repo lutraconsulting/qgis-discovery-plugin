@@ -140,16 +140,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             if not self.postgresButton.isChecked():
                 self.postgresButton.setChecked(True)
             # connections
-            all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
-            for conn in dbutils.get_postgres_connections():
-                if conn not in all_cons:
-                    self.cboConnection.addItem(conn)
-            self.init_combo_from_settings(self.cboConnection, key + "connection")
-            self.cboConnection.currentIndexChanged.connect(self.connect_db)
-            self.connect_db()
-            # schemas
-            self.init_combo_from_settings(self.cboSchema, key + "schema")
-            self.populate_tables()
+            current_connections = dbutils.get_postgres_connections()
+            self.init_conn_schema_cbos(current_connections, key)
         elif str(self.data_type) == str(DataType.GPKG.value):
             # data type button
             if not self.geopackageButton.isChecked():
@@ -158,26 +150,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.init_combo_from_settings(self.cboFile, key + "file")
             self.populate_tables()
         else:
-            # TODO refactot @vsklencar
             if not self.mssqlButton.isChecked():
                 self.mssqlButton.setChecked(True)
-                # connections
-            all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
-            for conn in mssql_utils.get_mssql_connections():
-                if conn not in all_cons:
-                    self.cboConnection.addItem(conn)
-            self.init_combo_from_settings(self.cboConnection, key + "connection")
-            self.cboConnection.currentIndexChanged.connect(self.connect_db)
-            self.connect_db()
-            # schemas
-            self.init_combo_from_settings(self.cboSchema, key + "schema")
-            self.populate_tables()
-
-            # db file
-            self.connect_db()
-            # schemas
-            self.init_combo_from_settings(self.cboSchema, key + "schema")
-            self.populate_tables()
+            # connections
+            current_connections = mssql_utils.get_mssql_connections()
+            self.init_conn_schema_cbos(current_connections, key)
         # tables
         self.init_combo_from_settings(self.cboTable, key + "table")
         self.cboTable.currentIndexChanged.connect(self.populate_columns)
@@ -221,6 +198,18 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         QApplication.restoreOverrideCursor()
 
+    def init_conn_schema_cbos(self, current_connections, key):
+        all_cons = [self.cboConnection.itemText(i) for i in range(self.cboConnection.count())]
+        for conn in current_connections:
+            if conn not in all_cons:
+                self.cboConnection.addItem(conn)
+        self.init_combo_from_settings(self.cboConnection, key + "connection")
+        self.cboConnection.currentIndexChanged.connect(self.connect_db)
+        self.connect_db()
+        # schemas
+        self.init_combo_from_settings(self.cboSchema, key + "schema")
+        self.populate_tables()
+
     def init_combo_from_settings(self, cbo, settings_key):
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -237,7 +226,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             if str(self.data_type) == str(DataType.POSTGRES.value):
                 self.conn = dbutils.get_connection(dbutils.get_postgres_conn_info(name))
             elif str(self.data_type) == str(DataType.MSSQL.value):
-                # TODO init from cboConnection
                 self.conn = mssql_utils.get_mssql_conn(mssql_utils.get_mssql_conn_info(name))
             self.lblMessage.setText("")
         except Exception as e:
@@ -302,9 +290,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
                 w.setEnabled(str(data_type) == str(curr_type))
                 w.setVisible(str(data_type) == str(curr_type))
 
-
     def validate_key(self, key, config_list):
-
         if not key: return False
         if self.key != key and key in config_list: return False
 
