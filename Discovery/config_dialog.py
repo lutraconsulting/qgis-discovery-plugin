@@ -123,7 +123,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         else:
             self.cboName.setStyleSheet("QLineEdit {background-color: pink;}")
 
-    # TODO refactor
     def set_form_fields(self, key="", data_type=None):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         settings = QSettings()

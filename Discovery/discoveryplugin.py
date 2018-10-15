@@ -251,7 +251,6 @@ class DiscoveryPlugin:
         model = self.completer.model()
         model.setStringList([])
 
-    # ->perform search
     def on_search_text_changed(self, new_search_text):
         """
         This function is called whenever the user modified the search text

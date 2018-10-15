@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>550</width>
-    <height>783</height>
+    <height>780</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,7 +35,7 @@
          <widget class="QLabel" name="label_10">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
+            <horstretch>1</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
@@ -55,7 +55,7 @@
          <widget class="QComboBox" name="cboFile">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-            <horstretch>0</horstretch>
+            <horstretch>4</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
