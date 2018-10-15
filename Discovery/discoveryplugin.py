@@ -297,7 +297,7 @@ class DiscoveryPlugin:
             model.setStringList(suggestions)
             self.completer.complete()
         elif str(self.data_type) == str(config_dialog.DataType.MSSQL.value):
-            query_text, query_dict = mssql_utils.get_search_sql(
+            query_text = mssql_utils.get_search_sql(
                 new_search_text,
                 self.postgisgeomcolumn,
                 self.postgissearchcolumn,
@@ -306,7 +306,7 @@ class DiscoveryPlugin:
                 self.extra_expr_columns,
                 self.postgisschema,
                 self.postgistable)
-            self.schedule_search(query_text, query_dict)
+            self.schedule_search(query_text, None)
 
 
     def do_db_operations(self):
@@ -327,7 +327,7 @@ class DiscoveryPlugin:
             cur.execute(self.query_sql, self.query_dict)
             result_set = cur.fetchall()
         else:
-            result_set = mssql_utils.execute(self.query_sql, self.query_dict)
+            result_set = mssql_utils.execute(self.query_sql)
 
         self.search_results = []
         suggestions = []

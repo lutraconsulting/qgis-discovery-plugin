@@ -59,50 +59,49 @@ def list_columns(schema, table):
         names.append(query.value(0))
     return names
 
+def _quote_brackets(identifier):
+    """ quote identifier as [<identifier>]"""
+    return u'[%s]' % identifier.replace('"', '""')
 
 def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table):
     wildcarded_search_string = ''
     for part in search_text.split():
         wildcarded_search_string += '%' + part
     wildcarded_search_string += '%'
-    query_dict = {":search_string": wildcarded_search_string}
     query_text = """ SELECT
-                            "%s".STAsText() AS geom,
-                            "%s" AS epsg,
-                     """ % (geom_column, "EPSG:27700")
+                            [%s].STAsText() AS geom,
+                            [%s].STSrid AS epsg,
+                     """ % (geom_column, geom_column)
 
     info_columns = []
     if echo_search_column:
-        info_columns.append(dbutils._quote(search_column))
+        info_columns.append(_quote_brackets(search_column))
     if len(display_columns) > 0:
         for display_column in display_columns.split(','):
-            info_columns.append(dbutils._quote(display_column))
+            info_columns.append(_quote_brackets(display_column))
     suggestion_string_seperator = ', '
     query_column_selection_text = """CONCAT_WS('%s', %s ) AS suggestion_string """ % (suggestion_string_seperator, ','.join(info_columns))
 
     query_text += query_column_selection_text
     for extra_column in extra_expr_columns:
-        query_text += ', "%s"' % extra_column
+        query_text += ', [%s]' % extra_column
     query_text += """
                       FROM
                             "%s"."%s"
-                      WHERE "%s" LIKE
+                      WHERE [%s] LIKE
                       """ % (schema, table, search_column)
-    query_text += """   :search_string
-                      """
+    query_text += """   '%s'
+                      """ % wildcarded_search_string
     query_text += """ORDER BY
-                            "%s"
+                            [%s]
                       """ % search_column
 
-    return query_text, query_dict
+    return query_text
 
 
-def execute(query_text, query_dict):
+def execute(query_text):
     query = QSqlQuery()
-    query.prepare(query_text)
-    for key in query_dict.keys():
-       query.bindValue(key, query_dict[key])
-    query.exec_()
+    query.exec(query_text)
     record = query.record()
     result_set = []
     while query.next():
@@ -110,6 +109,5 @@ def execute(query_text, query_dict):
         for i in range(record.count()):
             row.append(query.value(i))
         result_set.append(row)
-    print(result_set)
     return result_set
 
