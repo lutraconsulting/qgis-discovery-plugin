@@ -39,7 +39,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         self.conn = None
         self.key = ""  # currently selected config key
-        self.data_type=DataType.POSTGRES.value
+        self.data_type=DataType.POSTGRES.value # values matching with cboDataSource
 
         # signals
         self.buttonBox.button(QDialogButtonBox.Help).clicked.connect(self.show_help)
@@ -50,9 +50,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.fileButton.clicked.connect(self.browse_file_db)
         self.cboFile.currentIndexChanged.connect(self.populate_tables)
         self.cboSchema.currentIndexChanged.connect(self.populate_tables)
-        self.postgresButton.toggled.connect(self.data_type_changed)
-        self.geopackageButton.toggled.connect(self.data_type_changed)
-        self.mssqlButton.toggled.connect(self.data_type_changed)
+        self.cboDataSource.currentIndexChanged.connect(self.data_type_changed)
 
         settings = QSettings()
         settings.beginGroup("/Discovery")
@@ -72,6 +70,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             config_list.append("New config")
             settings.setValue("config_list", config_list)
 
+        self.init_cbo_data_source()
         self.cboConnection.addItem("")
 
         for key in config_list:
@@ -87,6 +86,12 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         self.set_form_fields(self.key)
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
+
+    def init_cbo_data_source(self):
+        self.cboDataSource.addItem("Postgres")
+        self.cboDataSource.addItem("MS SQL (SQL Server)")
+        self.cboDataSource.addItem("Geopackage")
+        self.cboDataSource.setCurrentIndex(0)
 
     def prev_version_config_available(self):
         settings = QSettings()
@@ -134,23 +139,16 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.cboName.setText("")
 
         self.data_type = data_type if data_type is not None else settings.value(key + "data_type", DataType.POSTGRES.value)
+        self.cboDataSource.setCurrentIndex(int(self.data_type))
         if str(self.data_type) == str(DataType.POSTGRES.value):
-            # data type button
-            if not self.postgresButton.isChecked():
-                self.postgresButton.setChecked(True)
             # connections
             current_connections = dbutils.get_postgres_connections()
             self.init_conn_schema_cbos(current_connections, key)
         elif str(self.data_type) == str(DataType.GPKG.value):
-            # data type button
-            if not self.geopackageButton.isChecked():
-                self.geopackageButton.setChecked(True)
             # db file
             self.init_combo_from_settings(self.cboFile, key + "file")
             self.populate_tables()
         else:
-            if not self.mssqlButton.isChecked():
-                self.mssqlButton.setChecked(True)
             # connections
             current_connections = mssql_utils.get_mssql_connections()
             self.init_conn_schema_cbos(current_connections, key)
@@ -280,7 +278,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def enable_fields_for_data_type(self):
         widgets = {DataType.POSTGRES.value: [self.cboConnection, self.cboSchema, self.label, self.label_2],
                    DataType.MSSQL.value: [self.cboConnection, self.cboSchema, self.label, self.label_2],
-                    DataType.GPKG.value: [self.cboFile, self.label_10, self.fileButton]}
+                    DataType.GPKG.value: [self.file_grid_layout, self.cboFile, self.label_10, self.fileButton]}
         curr_type = self.data_type
         if curr_type == DataType.MSSQL.value:
             curr_type = DataType.POSTGRES.value
@@ -319,7 +317,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             config_list.append(key)
             settings.setValue("config_list", config_list)
 
-        settings.setValue(key + "data_type", self.get_data_type())
+        settings.setValue(key + "data_type", self.get_source_type())
         settings.setValue(key + "file", self.cboFile.currentText())
         settings.setValue(key + "connection", self.cboConnection.currentText())
         settings.setValue(key + "schema", self.cboSchema.currentText())
@@ -393,7 +391,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         # reset fields
         self.set_form_fields()
         self.cboName.setText(txt)
-        self.postgresButton.setChecked(True)
+        self.cboDataSource.setCurrentIndex(0)
         self.key = txt
 
 
@@ -433,9 +431,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.key = self.configOptions.currentText()
         self.set_form_fields(self.key)
 
-    def data_type_changed(self, active):
-        if not active: return
-        self.set_form_fields(self.key, self.get_data_type())
+    def data_type_changed(self):
+        self.set_form_fields(self.key, self.get_source_type())
 
     def browse_file_db(self):
         dialog = QFileDialog(self)
@@ -448,13 +445,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
                 self.cboFile.addItem(filename)
             self.cboFile.setCurrentIndex(self.cboFile.findText(filename))
 
-    def get_data_type(self):
-        if self.postgresButton.isChecked():
-            return DataType.POSTGRES.value
-        elif self.geopackageButton.isChecked():
-            return DataType.GPKG.value
-        else:
-            return DataType.MSSQL.value
+    def get_source_type(self):
+        return self.cboDataSource.currentIndex()
 
     def show_help(self):
         QDesktopServices.openUrl(QUrl("http://www.lutraconsulting.co.uk/products/discovery/"))
