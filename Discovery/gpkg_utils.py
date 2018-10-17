@@ -48,16 +48,21 @@ def search_gpkg(search_text, search_field, echo_search_column, display_fields, e
         epsg = layer.crs().authid()
         feature_info.append(geom)
         feature_info.append(epsg)
+        available_fields = [field.name() for field in f.fields()]
 
         display_info = []
         if echo_search_column:
             display_info.append(f[search_field])
         for field_name in display_fields:
-            display_info.append(f[field_name])
+            if f[field_name]:
+                display_info.append(f[field_name])
         feature_info.append(display_info)
 
         for field_name in extra_expr_columns:
-            feature_info.append(f[field_name])
+            if field_name in available_fields:
+                feature_info.append(f[field_name])
+            else:
+                feature_info.append("")
         result.append(feature_info)
     return result
 
