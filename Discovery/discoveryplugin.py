@@ -321,9 +321,9 @@ class DiscoveryPlugin:
                 self.db_conn = None
 
     def perform_search(self):
+        db = self.get_db()
         if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
-
-            cur = self.get_db_cur()
+            cur = db.cursor()
             cur.execute(self.query_sql, self.query_dict)
             result_set = cur.fetchall()
         else:
@@ -410,14 +410,14 @@ class DiscoveryPlugin:
     def reset_line_edit_after_move(self):
         self.search_line_edit.setText(self.query_text)
 
-    def get_db_cur(self):
+    def get_db(self):
         # Create a new new connection if required
         if self.db_conn is None:
             if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
                 self.db_conn = dbutils.get_connection(self.conn_info)
             else:
                 self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
-        return self.db_conn.cursor()
+        return self.db_conn
 
     def change_configuration(self):
         self.search_line_edit.setText("")

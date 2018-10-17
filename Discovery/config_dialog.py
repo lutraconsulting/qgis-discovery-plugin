@@ -84,7 +84,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if not self.configOptions.count():
             self.enable_form(False)
 
-        self.set_form_fields(self.key)
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
 
     def init_cbo_data_source(self):
@@ -139,7 +138,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.cboName.setText("")
 
         self.data_type = data_type if data_type is not None else settings.value(key + "data_type", DataType.POSTGRES.value)
+        old_state = self.cboDataSource.blockSignals(True)
         self.cboDataSource.setCurrentIndex(int(self.data_type))
+        self.cboDataSource.blockSignals(old_state)
         if str(self.data_type) == str(DataType.POSTGRES.value):
             # connections
             current_connections = dbutils.get_postgres_connections()

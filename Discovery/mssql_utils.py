@@ -7,21 +7,62 @@ def get_mssql_connections():
     """ Read PostgreSQL connection names from QSettings stored by QGIS
     """
     settings = QSettings()
-    settings.beginGroup(u"/mssql/connections/")
+    settings.beginGroup(u"/MSSQL/connections/")
     return settings.childGroups()
 
 
 def get_mssql_conn_info(connection):
-    settings = QSettings()
-    settings.beginGroup(u"/mssql/connections/" + connection)
-    return settings.value('/service', "")
+    return connection
 
 
-def get_mssql_conn(conn_service):
-    db = QSqlDatabase.addDatabase("QODBC3")
-    db.setDatabaseName(conn_service)
+def get_connection(service, host, database, username, password):
+    threadSafeConnectionName = service
+    if not QSqlDatabase.contains(threadSafeConnectionName):
+        db = QSqlDatabase.addDatabase("QODBC", threadSafeConnectionName)
+        db.setConnectOptions("SQL_ATTR_CONNECTION_POOLING=SQL_CP_ONE_PER_HENV")
+    else:
+        db = QSqlDatabase.database(threadSafeConnectionName)
+
+    db.setHostName(host)
+    if service:
+        connection_string = service
+    else:
+        import sys
+        if sys.platform.startswith("win"):
+            connection_string = "driver={SQL Server}"
+        else:
+            connection_string = "driver={FreeTDS};port=1433"
+        if host:
+            connection_string += ";server=" + host
+
+        if database:
+            connection_string += ";database=" + database
+        if not password:
+            connection_string += ";trusted_connection=yes"
+        else:
+            connection_string += ";uid=" + username + ";pwd=" + password
+        connection_string += ";TDS_Version=8.0;ClientCharset=UTF-8"
+
+        if username:
+            db.setUserName(username)
+
+        if password:
+            db.setPassword(password)
+    db.setDatabaseName(connection_string)
+
     db.open()
     return db
+
+
+def get_mssql_conn(connection):
+    settings = QSettings()
+    settings.beginGroup(u"/MSSQL/connections/" + connection)
+    service = settings.value('/service', "")
+    host = settings.value('/host', "")
+    database = settings.value('/database', "")
+    username = settings.value('/username', "")
+    password = settings.value('/password', "")
+    return get_connection(service,host, database,username, password)
 
 
 def list_schemas():
