@@ -1,3 +1,4 @@
+import sys
 from PyQt5.QtCore import QSettings
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from . import dbutils
@@ -15,19 +16,13 @@ def get_mssql_conn_info(connection):
     return connection
 
 
-def get_connection(service, host, database, username, password):
-    threadSafeConnectionName = service
-    if not QSqlDatabase.contains(threadSafeConnectionName):
-        db = QSqlDatabase.addDatabase("QODBC", threadSafeConnectionName)
-        db.setConnectOptions("SQL_ATTR_CONNECTION_POOLING=SQL_CP_ONE_PER_HENV")
-    else:
-        db = QSqlDatabase.database(threadSafeConnectionName)
-
+def get_connection(conn_name, service, host, database, username, password):
+    # inspired by creation of connection string from QGIS MS SQL provider
+    db = QSqlDatabase.addDatabase("QODBC", "discovery_" + conn_name)
     db.setHostName(host)
     if service:
         connection_string = service
     else:
-        import sys
         if sys.platform.startswith("win"):
             connection_string = "driver={SQL Server}"
         else:
@@ -50,7 +45,8 @@ def get_connection(service, host, database, username, password):
             db.setPassword(password)
     db.setDatabaseName(connection_string)
 
-    db.open()
+    if not db.open():
+        raise Exception(db.lastError().text())
     return db
 
 
@@ -62,16 +58,16 @@ def get_mssql_conn(connection):
     database = settings.value('/database', "")
     username = settings.value('/username', "")
     password = settings.value('/password', "")
-    return get_connection(service,host, database,username, password)
+    return get_connection(connection, service, host, database, username, password)
 
 
-def list_schemas():
+def list_schemas(db):
     """ Get list of schema names
        """
-    query = QSqlQuery()
+    query = QSqlQuery(db)
     query_text = """SELECT schema_name
             FROM information_schema.schemata
-            WHERE schema_owner = 'dbo';"""
+            WHERE schema_owner = 'dbo';"""  # TODO: better way to filter out system schemas
     query.exec(query_text)
     names = []
     while query.next():
@@ -79,9 +75,9 @@ def list_schemas():
     return sorted(names)
 
 
-def list_tables():
+def list_tables(db):
     query_text = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
-    query = QSqlQuery()
+    query = QSqlQuery(db)
     query.exec(query_text)
     names = []
     while query.next():
@@ -89,11 +85,11 @@ def list_tables():
     return names
 
 
-def list_columns(schema, table):
+def list_columns(db, schema, table):
     query_text = """SELECT COLUMN_NAME
                 FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_NAME = '%s' AND TABLE_SCHEMA ='%s';""" % (dbutils._quote_str(table), dbutils._quote_str(schema))
-    query = QSqlQuery()
+    query = QSqlQuery(db)
     query.exec(query_text)
     names = []
     while query.next():
@@ -140,8 +136,8 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     return query_text
 
 
-def execute(query_text):
-    query = QSqlQuery()
+def execute(db, query_text):
+    query = QSqlQuery(db)
     query.exec(query_text)
     record = query.record()
     result_set = []
@@ -151,4 +147,3 @@ def execute(query_text):
             row.append(query.value(i))
         result_set.append(row)
     return result_set
-

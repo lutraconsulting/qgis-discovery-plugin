@@ -268,7 +268,7 @@ class DiscoveryPlugin:
             self.clear_suggestions()
             return
 
-        if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
+        if self.data_type == "postgres":
             query_text, query_dict = dbutils.get_search_sql(
                                         new_search_text,
                                         self.postgisgeomcolumn,
@@ -280,7 +280,7 @@ class DiscoveryPlugin:
                                         self.postgistable)
             self.schedule_search(query_text, query_dict)
 
-        elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
+        elif self.data_type == "gpkg":
             display_fields = self.postgisdisplaycolumn.split(",")
             result = gpkg_utils.search_gpkg(new_search_text, self.postgissearchcolumn, self.echosearchcolumn, display_fields, self.extra_expr_columns, self.layer)
             suggestions = []
@@ -296,7 +296,7 @@ class DiscoveryPlugin:
             model = self.completer.model()
             model.setStringList(suggestions)
             self.completer.complete()
-        elif str(self.data_type) == str(config_dialog.DataType.MSSQL.value):
+        elif self.data_type == "mssql":
             query_text = mssql_utils.get_search_sql(
                 new_search_text,
                 self.postgisgeomcolumn,
@@ -322,12 +322,12 @@ class DiscoveryPlugin:
 
     def perform_search(self):
         db = self.get_db()
-        if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
+        if self.data_type == "postgres":
             cur = db.cursor()
             cur.execute(self.query_sql, self.query_dict)
             result_set = cur.fetchall()
         else:
-            result_set = mssql_utils.execute(self.query_sql)
+            result_set = mssql_utils.execute(db, self.query_sql)
 
         self.search_results = []
         suggestions = []
@@ -413,7 +413,7 @@ class DiscoveryPlugin:
     def get_db(self):
         # Create a new new connection if required
         if self.db_conn is None:
-            if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
+            if self.data_type == "postgres":
                 self.db_conn = dbutils.get_connection(self.conn_info)
             else:
                 self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
@@ -456,7 +456,7 @@ class DiscoveryPlugin:
         self.make_enabled(False)   # assume the config is invalid first
 
         self.db_conn = None
-        if str(self.data_type) == str(config_dialog.DataType.POSTGRES.value):
+        if self.data_type == "postgres":
             self.conn_info = dbutils.get_postgres_conn_info(connection)
             self.layer = None
 
@@ -468,7 +468,7 @@ class DiscoveryPlugin:
                 iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
                                                level=Qgis.Critical)
                 return
-        if str(self.data_type) == str(config_dialog.DataType.MSSQL.value):
+        if self.data_type == "mssql":
             self.conn_info = mssql_utils.get_mssql_conn_info(connection)
             self.layer = None
 
@@ -480,8 +480,8 @@ class DiscoveryPlugin:
                 iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
                                                level=Qgis.Critical)
                 return
-        elif str(self.data_type) == str(config_dialog.DataType.GPKG.value):
-            self.layer =QgsVectorLayer(self.file + '|layername=' + self.postgistable, self.postgistable, 'ogr')
+        elif self.data_type == "gpkg":
+            self.layer = QgsVectorLayer(self.file + '|layername=' + self.postgistable, self.postgistable, 'ogr')
             self.conn_info = None
         self.extra_expr_columns = []
         self.scale_expr = None
