@@ -304,10 +304,9 @@ class DiscoveryPlugin:
         location_centroid = location_geom.centroid().asPoint()
 
         # show temporary marker
-        if location_geom.type() == QgsWkbTypes.PointGeometry:
+        if location_geom.type() == QGis.Point:
             self.show_marker(location_centroid)
-        elif location_geom.type() == QgsWkbTypes.LineGeometry or \
-            location_geom.type() == QgsWkbTypes.PolygonGeometry:
+        elif location_geom.type() == QGis.Line or location_geom.type() == QGis.Polygon:
             self.show_line_rubber_band(location_geom)
         else:
             #unsupported geometry type
