@@ -144,7 +144,8 @@ class DiscoveryPlugin:
         self.rubber_band = QgsRubberBand(iface.mapCanvas(), False)
         self.rubber_band.setVisible(False)
         self.rubber_band.setWidth(3)
-        self.rubber_band.setColor(QColor(226, 27, 28))
+        self.rubber_band.setStrokeColor(QColor(226, 27, 28))
+        self.rubber_band.setFillColor(QColor(226, 27, 28, 63))
 
     def initGui(self):
 
