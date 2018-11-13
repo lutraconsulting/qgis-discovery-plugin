@@ -2,7 +2,7 @@
 name=Discovery
 qgisMinimumVersion=2.0
 description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
-version=1.5.0
+version=1.5.1
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -16,7 +16,9 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=1.5.0 - New features
+changelog=1.5.1 - Minor bugfixes
+ - Use semi-transparent rubber band for polygons
+ <p>1.5.0 - New features
  - Support for linestring and polygon geometries (#34)
  - Support for materialized views (#29)
  <p>1.4.1 - Minor bugfixes
