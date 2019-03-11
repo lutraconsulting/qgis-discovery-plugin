@@ -14,6 +14,7 @@ from PyQt5.QtCore import QSettings
 
 import psycopg2
 
+from qgis.core import QgsApplication, QgsAuthMethodConfig
 
 def get_connection(conn_info):
     """ Connect to the database using conn_info dict:
@@ -47,18 +48,27 @@ def get_postgres_conn_info(selected):
     if not settings.contains("database"): # non-existent entry?
         return {}
 
-    conn_info = {}
+    conn_info = dict()
     conn_info["host"] = settings.value("host", "", type=str)
+
+    # first try to get the credentials from AuthManager, then from the basic settings
+    authconf = settings.value('authcfg', None)
+    if authconf:
+        auth_manager = QgsApplication.authManager()
+        conf = QgsAuthMethodConfig()
+        auth_manager.loadAuthenticationConfig(authconf, conf, True)
+        if conf.id():
+            conn_info["user"] = conf.config('username', '')
+            conn_info["password"] = conf.config('password', '')
+    else:
+        conn_info["user"] = settings.value('username', type=str)
+        conn_info["password"] = settings.value('password', type=str)
+
     try:
         conn_info["port"] = settings.value("port", 5432, type=int)
     except TypeError:
         pass   # not present
     conn_info["database"] = settings.value("database", "", type=str)
-    username = settings.value("username", "", type=str)
-    password = settings.value("password", "", type=str)
-    if len(username) != 0:
-        conn_info["user"] = username
-        conn_info["password"] = password
     return conn_info
 
 
