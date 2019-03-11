@@ -3,7 +3,7 @@ name=Discovery
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Provides search / gazetteer functionality in QGIS using PostGIS-based data
-version=2.2.1
+version=2.3.0
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -17,7 +17,9 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=2.2.1 - Minor bugfixes
+changelog=2.3.0 - New features
+ - Added support for using QGIS authentication configurations
+ <p>2.2.1 - Minor bugfixes
  - Use semi-transparent rubber band for polygons
  <p>2.2.0 - New features
  - Support for linestring and polygon geometries (#34)
