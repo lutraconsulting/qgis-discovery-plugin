@@ -52,11 +52,11 @@ def search_gpkg(search_text, search_field, echo_search_column, display_fields, e
 
         display_info = []
         if echo_search_column:
-            display_info.append(f[search_field])
+            display_info.append(str(f[search_field]))
         for field_name in display_fields:
             if f[field_name]:
-                display_info.append(f[field_name])
-        feature_info.append(display_info)
+                display_info.append(str(f[field_name]))
+        feature_info.append(", ".join(display_info))
 
         for field_name in extra_expr_columns:
             if field_name in available_fields:

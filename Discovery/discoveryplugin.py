@@ -282,21 +282,9 @@ class DiscoveryPlugin:
             self.schedule_search(query_text, query_dict)
 
         elif self.data_type == "gpkg":
-            display_fields = self.postgisdisplaycolumn.split(",")
-            result = gpkg_utils.search_gpkg(new_search_text, self.postgissearchcolumn, self.echosearchcolumn, display_fields, self.extra_expr_columns, self.layer)
-            suggestions = []
-            self.search_results = []
+            query_text = (new_search_text, self.postgissearchcolumn, self.echosearchcolumn, self.postgisdisplaycolumn.split(","), self.extra_expr_columns, self.layer)
+            self.schedule_search(query_text, None)
 
-            for row in result:
-                geom, epsg, suggestion_text = row[0], row[1], ", ".join(row[2])
-                extra_data = {}
-                for idx, extra_col in enumerate(self.extra_expr_columns):
-                    extra_data[extra_col] = row[3 + idx]
-                self.search_results.append((geom, epsg, extra_data))
-                suggestions.append(suggestion_text)
-            model = self.completer.model()
-            model.setStringList(suggestions)
-            self.completer.complete()
         elif self.data_type == "mssql":
             query_text = mssql_utils.get_search_sql(
                 new_search_text,
@@ -327,8 +315,10 @@ class DiscoveryPlugin:
             cur = db.cursor()
             cur.execute(self.query_sql, self.query_dict)
             result_set = cur.fetchall()
-        else:
+        elif self.data_type == "mssql":
             result_set = mssql_utils.execute(db, self.query_sql)
+        elif self.data_type == "gpkg":
+            result_set = gpkg_utils.search_gpkg(*self.query_sql)
 
         self.search_results = []
         suggestions = []
@@ -416,7 +406,7 @@ class DiscoveryPlugin:
         if self.db_conn is None:
             if self.data_type == "postgres":
                 self.db_conn = dbutils.get_connection(self.conn_info)
-            else:
+            elif self.data_type == "mssql":
                 self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
         return self.db_conn
 
