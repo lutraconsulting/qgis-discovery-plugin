@@ -16,6 +16,7 @@ import psycopg2
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig
 
+
 def get_connection(conn_info):
     """ Connect to the database using conn_info dict:
      { 'host': ..., 'port': ..., 'database': ..., 'username': ..., 'password': ... }

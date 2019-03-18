@@ -49,7 +49,7 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
                                     self.plugin.postgisschema,
                                     self.plugin.postgistable)
 
-        cur = self.plugin.get_db_cur()
+        cur = self.plugin.get_db()
         cur.execute(query_text, query_dict)
 
         for row in cur.fetchall():
