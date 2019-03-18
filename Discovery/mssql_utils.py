@@ -1,6 +1,7 @@
 import sys
 from PyQt5.QtCore import QSettings
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
+from qgis.core import QgsMessageLog
 from . import dbutils
 
 
@@ -116,15 +117,14 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     if len(display_columns) > 0:
         for display_column in display_columns.split(','):
             info_columns.append(_quote_brackets(display_column))
-    suggestion_string_seperator = ', '
-    query_column_selection_text = """CONCAT_WS('%s', %s ) AS suggestion_string """ % (suggestion_string_seperator, ','.join(info_columns))
+    joined_info_columns = ", ', ' COLLATE Latin1_General_CI_AS, ".join(info_columns)
 
-    query_text += query_column_selection_text
+    query_text += "CONCAT( %s ) AS suggestion_string" % joined_info_columns
     for extra_column in extra_expr_columns:
         query_text += ', [%s]' % extra_column
     query_text += """
                       FROM
-                            "%s"."%s"
+                            [%s].[%s]
                       WHERE [%s] LIKE
                       """ % (schema, table, search_column)
     query_text += """   '%s'
@@ -138,7 +138,10 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
 
 def execute(db, query_text):
     query = QSqlQuery(db)
-    query.exec(query_text)
+    if not query.exec(query_text):
+        QgsMessageLog.logMessage( query.lastError().text() + "\n\nQuery:\n" + query_text, "Discovery")
+        return []
+
     record = query.record()
     result_set = []
     while query.next():
