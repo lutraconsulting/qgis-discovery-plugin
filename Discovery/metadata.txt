@@ -3,7 +3,7 @@ name=Discovery
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Provides search / gazetteer functionality in QGIS using PostGIS, MSSQL and Geopackge databases
-version=2.4.0
+version=2.4.1
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -17,7 +17,9 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=2.4.0 - New features
+changelog=2.4.1 - Minor bugfixes
+ - Fixed MS SQL query when there are just one or zero display columns
+ <p>2.4.0 - New features
  - Added support for using MSSQL and Geopackage databases
  <p>2.3.0 - New features 
  - Added support for using QGIS authentication configurations
