@@ -117,9 +117,15 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     if len(display_columns) > 0:
         for display_column in display_columns.split(','):
             info_columns.append(_quote_brackets(display_column))
-    joined_info_columns = ", ', ' COLLATE Latin1_General_CI_AS, ".join(info_columns)
 
-    query_text += "CONCAT( %s ) AS suggestion_string" % joined_info_columns
+    if len(info_columns) == 0:
+        query_text += "'' AS suggestion_string"
+    elif len(info_columns) == 1:
+        query_text += "CAST (%s AS nvarchar) AS suggestion_string" % info_columns[0]
+    else:
+        joined_info_columns = ", ', ' COLLATE Latin1_General_CI_AS, ".join(info_columns)
+        query_text += "CONCAT( %s ) AS suggestion_string" % joined_info_columns
+
     for extra_column in extra_expr_columns:
         query_text += ', [%s]' % extra_column
     query_text += """
