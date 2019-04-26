@@ -55,8 +55,8 @@ def get_postgres_conn_info(selected):
     # password and username
     username = ''
     password = ''
-    authconf = settings.value('authcfg', None)
-    if authconf is not None:
+    authconf = settings.value('authcfg', '')
+    if authconf :
         # password encrypted in AuthManager
         auth_manager = QgsApplication.authManager()
         conf = QgsAuthMethodConfig()

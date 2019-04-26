@@ -459,6 +459,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.set_form_fields(self.key)
 
     def data_type_changed(self):
+        self.conn=None
         self.populate_connections()
         self.enable_fields_for_data_type()
 
