@@ -68,6 +68,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.init_cbo_data_source()
         self.cboConnection.currentIndexChanged.connect(self.connect_db)
         self.cboConnection.addItem("")
+        self.populate_connections()
 
         for key in config_list:
             self.configOptions.addItem(key)
@@ -218,6 +219,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def connect_db(self):
         name = self.cboConnection.currentText()
+        if name == '':
+            return
         try:
             data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
             if data_type == "postgres":
@@ -415,6 +418,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.reset_form_fields()
         self.cboName.setText(txt)
         self.cboDataSource.setCurrentIndex(0)
+        self.populate_connections()
         self.key = txt
 
 
