@@ -19,6 +19,7 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
 
 changelog=2.4.2 - Minor bugfixes
  - Fixed QGIS authentication configuration what username/password is in environment variables
+ - Fixed empty connections combo
  <p>2.4.1 - Minor bugfixes
  - Fixed MS SQL query when there are just one or zero display columns
  <p>2.4.0 - New features
