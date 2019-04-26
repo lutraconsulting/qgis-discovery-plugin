@@ -52,19 +52,32 @@ def get_postgres_conn_info(selected):
     conn_info = dict()
     conn_info["host"] = settings.value("host", "", type=str)
 
-    # first try to get the credentials from AuthManager, then from the basic settings
+    # password and username
+    username = ''
+    password = ''
     authconf = settings.value('authcfg', None)
-    if authconf:
+    if authconf is not None:
+        # password encrypted in AuthManager
         auth_manager = QgsApplication.authManager()
         conf = QgsAuthMethodConfig()
         auth_manager.loadAuthenticationConfig(authconf, conf, True)
         if conf.id():
-            conn_info["user"] = conf.config('username', '')
-            conn_info["password"] = conf.config('password', '')
+            username = conf.config('username', '')
+            password = conf.config('password', '')
     else:
-        conn_info["user"] = settings.value('username', type=str)
-        conn_info["password"] = settings.value('password', type=str)
+        # basic (plain-text) settings
+        username = settings.value('username', '', type=str)
+        password = settings.value('password', '', type=str)
 
+    # password and username could be stored in environment variables
+    # if not present in AuthManager or plain-text settings, do not
+    # add it to conn_info at all
+    if len(username) > 0:
+        conn_info["user"] = username
+    if len(password) > 0:
+        conn_info["password"] = password
+
+    # port and database
     try:
         conn_info["port"] = settings.value("port", 5432, type=int)
     except TypeError:
