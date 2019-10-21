@@ -13,7 +13,7 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt
+from PyQt5.QtCore import QCoreApplication, QModelIndex, QSettings, QTimer, QTranslator, QVariant, Qt
 from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtWidgets import QAction, QComboBox, QCompleter
 
@@ -31,6 +31,8 @@ from qgis.core import (
     QgsField,
     QgsFields,
     QgsGeometry,
+    QgsMapLayer,
+    QgsProject,
     QgsRectangle,
     QgsVectorLayer,
     QgsWkbTypes
@@ -100,6 +102,9 @@ def delete_config_from_settings(key, settings):
     settings.remove(key + "geom_column")
     settings.remove(key + "scale_expr")
     settings.remove(key + "bbox_expr")
+    settings.remove(key + "comparison_mode")
+    settings.remove(key + "begin_autocompletion")
+    settings.remove(key + "case_sensitivity")
 
 
 class DiscoveryPlugin:
@@ -109,6 +114,17 @@ class DiscoveryPlugin:
         self.iface = _iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+        # initialize locale
+        locale = QSettings().value('locale/userLocale')[0:2]
+        locale_path = os.path.join(
+            self.plugin_dir,
+            'i18n',
+            'Discovery_{}.qm'.format(locale))
+
+        if os.path.exists(locale_path):
+            self.translator = QTranslator()
+            self.translator.load(locale_path)
+            QCoreApplication.installTranslator(self.translator)
 
         # Variables to facilitate delayed queries and database connection management
         self.db_timer = QTimer()
@@ -124,6 +140,7 @@ class DiscoveryPlugin:
         self.query_dict = {}
         self.db_idle_time = 60.0  # s
         self.display_time = 5000  # ms
+        self.begin_autocompletion = 3 # begin autocompletion after typing 3 characters 
 
         self.search_results = []
         self.tool_bar = None
@@ -132,8 +149,8 @@ class DiscoveryPlugin:
         self.conn_info = {}
 
         self.marker = QgsVertexMarker(iface.mapCanvas())
-        self.marker.setIconSize(15)
-        self.marker.setPenWidth(2)
+        self.marker.setIconSize(25)
+        self.marker.setPenWidth(4)
         self.marker.setColor(QColor(226, 27, 28))  #51,160,44))
         self.marker.setZValue(11)
         self.marker.setVisible(False)
@@ -160,7 +177,7 @@ class DiscoveryPlugin:
         # Create action that will start plugin configuration
         self.action_config = QAction(
              QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
-             u"Configure Discovery", self.tool_bar)
+             QCoreApplication.translate('popup-text',u"Configure Discovery"), self.tool_bar)
         self.action_config.triggered.connect(self.show_config_dialog)
         self.tool_bar.addAction(self.action_config)
 
@@ -192,13 +209,17 @@ class DiscoveryPlugin:
             settings.setValue(key + "geom_column", settings.value("geom_column"))
             settings.setValue(key + "scale_expr", settings.value("scale_expr"))
             settings.setValue(key + "bbox_expr", settings.value("bbox_expr"))
+            settings.setValue(key + "comparison_mode", settings.value("comparison_mode"))
+            settings.setValue(key + "begin_autocompletion", settings.value("begin_autocompletion"))
+            settings.setValue(key + "case_sensitivity", settings.value("case_sensitivity"))
 
             delete_config_from_settings("", settings)
         self.tool_bar.addWidget(self.config_combo)
 
         # Add search edit box
         self.search_line_edit = QgsFilterLineEdit()
-        self.search_line_edit.setPlaceholderText('Search for...')
+        self.search_line_edit.setPlaceholderText(QCoreApplication.translate('search_line_edit_text1',
+                                                 'Search for...'))
         self.search_line_edit.setMaximumWidth(768)
         self.tool_bar.addWidget(self.search_line_edit)
 
@@ -264,7 +285,7 @@ class DiscoveryPlugin:
 
         self.query_text = new_search_text
 
-        if len(new_search_text) < 3:
+        if len(new_search_text) < self.begin_autocompletion:
             # Clear any previous suggestions in case the user is 'backspacing'
             self.clear_suggestions()
             return
@@ -281,8 +302,10 @@ class DiscoveryPlugin:
                                         self.postgistable)
             self.schedule_search(query_text, query_dict)
 
-        elif self.data_type == "gpkg":
-            query_text = (new_search_text, self.postgissearchcolumn, self.echosearchcolumn, self.postgisdisplaycolumn.split(","), self.extra_expr_columns, self.layer)
+        elif self.data_type == "gpkg" or self.data_type == "qgis_project_layer":
+            query_text = (new_search_text, self.postgissearchcolumn, self.echosearchcolumn, 
+                          self.postgisdisplaycolumn.split(","), self.extra_expr_columns, self.layer,
+                          self.comparison_mode,self.case_sensitivity)
             self.schedule_search(query_text, None)
 
         elif self.data_type == "mssql":
@@ -317,7 +340,7 @@ class DiscoveryPlugin:
             result_set = cur.fetchall()
         elif self.data_type == "mssql":
             result_set = mssql_utils.execute(db, self.query_sql)
-        elif self.data_type == "gpkg":
+        elif self.data_type == "gpkg" or self.data_type == "qgis_project_layer":
             result_set = gpkg_utils.search_gpkg(*self.query_sql)
 
         self.search_results = []
@@ -431,6 +454,9 @@ class DiscoveryPlugin:
         self.echosearchcolumn = settings.value(key + "echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value(key + "display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value(key + "geom_column", "", type=str)
+        self.comparison_mode = settings.value(key + "comparison_mode", "", type=str)
+        self.begin_autocompletion = settings.value(key + "begin_autocompletion", 1, type=int)
+        self.case_sensitivity = settings.value(key + "case_sensitivity", True, type=bool)
         if settings.value("marker_time_enabled", True, type=bool):
             self.display_time = settings.value("marker_time", 5000, type=int)
         else:
@@ -456,7 +482,8 @@ class DiscoveryPlugin:
                 return
 
             if len(self.conn_info) == 0:
-                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
+                iface.messageBar().pushMessage("Discovery", QCoreApplication.translate('connection',
+                                       "The database connection '%s' does not exist!") % connection,
                                                level=Qgis.Critical)
                 return
         if self.data_type == "mssql":
@@ -468,11 +495,18 @@ class DiscoveryPlugin:
                 return
 
             if len(self.conn_info) == 0:
-                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
+                iface.messageBar().pushMessage("Discovery", QCoreApplication.translate('connection',
+                                       "The database connection '%s' does not exist!") % connection,
                                                level=Qgis.Critical)
                 return
         elif self.data_type == "gpkg":
             self.layer = QgsVectorLayer(self.file + '|layername=' + self.postgistable, self.postgistable, 'ogr')
+            self.conn_info = None
+        elif self.data_type == "qgis_project_layer":
+            projectlayers = QgsProject.instance().mapLayers().values()
+            for projectlayer in projectlayers:
+                if projectlayer.type() == QgsMapLayer.VectorLayer and projectlayer.name() == self.postgistable:
+                    self.layer = projectlayer
             self.conn_info = None
         self.extra_expr_columns = []
         self.scale_expr = None
@@ -484,7 +518,8 @@ class DiscoveryPlugin:
         if len(scale_expr) != 0:
             expr = QgsExpression(scale_expr)
             if expr.hasParserError():
-                iface.messageBar().pushMessage("Discovery", "Invalid scale expression: " + expr.parserErrorString(),
+                iface.messageBar().pushMessage("Discovery", QCoreApplication.translate('scale',
+                                               "Invalid scale expression: ") + expr.parserErrorString(),
                                                level=Qgis.Warning)
             else:
                 self.scale_expr = scale_expr
@@ -494,7 +529,8 @@ class DiscoveryPlugin:
         if len(bbox_expr) != 0:
             expr = QgsExpression(bbox_expr)
             if expr.hasParserError():
-                iface.messageBar().pushMessage("Discovery", "Invalid bbox expression: " + expr.parserErrorString(),
+                iface.messageBar().pushMessage("Discovery", QCoreApplication.translate('bbox',
+                                               "Invalid bbox expression: ") + expr.parserErrorString(),
                                                level=Qgis.Warning)
             else:
                 self.bbox_expr = bbox_expr
@@ -516,7 +552,9 @@ class DiscoveryPlugin:
 
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)
-        self.search_line_edit.setPlaceholderText("Search for..." if enabled else "Search disabled: check configuration")
+        self.search_line_edit.setPlaceholderText(QCoreApplication.translate('search_line_edit_text2',
+                                                 "Search for...") if enabled else QCoreApplication.translate(
+                                                 'search_line_edit_text3',"Search disabled: check configuration"))
 
     def show_marker(self, point):
         for m in [self.marker, self.marker2]:

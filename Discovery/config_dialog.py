@@ -11,17 +11,21 @@
 # (at your option) any later version.
 
 import os
+import sys
 
-from PyQt5.QtCore import QSettings, Qt, QUrl
+from PyQt5.QtCore import QSettings, Qt, QUrl, QCoreApplication, QTranslator
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication, QDialogButtonBox, QMessageBox, QFileDialog, QDialog
 from PyQt5 import uic
+from qgis.core import QgsVectorLayer, Qgis, QgsProject, QgsMapLayer
 from . import dbutils
 from . import discoveryplugin
 from . import gpkg_utils
 from . import mssql_utils
 
 plugin_dir = os.path.dirname(__file__)
+sys.path.insert(0,plugin_dir)
+from natsort import natsorted
 
 uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_dialog.ui'))
 
@@ -42,6 +46,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.configOptions.currentIndexChanged.connect(self.config_selection_changed)
         self.cboName.textChanged.connect(self.validate_nameField)
         self.cboDataSource.currentIndexChanged.connect(self.data_type_changed)
+#       self.cboComparisonMode.currentIndexChanged.connect(self.data_type_changed)
         self.fileButton.clicked.connect(self.browse_file_db)
         self.cboFile.currentIndexChanged.connect(self.populate_tables)
         self.cboSchema.currentIndexChanged.connect(self.populate_tables)
@@ -66,6 +71,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             settings.setValue("config_list", config_list)
 
         self.init_cbo_data_source()
+        self.init_cbo_comparison_mode()
+        self.spinMarkerAutoComplete.setValue(3)
         self.cboConnection.currentIndexChanged.connect(self.connect_db)
         self.cboConnection.addItem("")
         self.populate_connections()
@@ -87,7 +94,14 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.cboDataSource.addItem("PostgreSQL", "postgres")
         self.cboDataSource.addItem("MS SQL Server", "mssql")
         self.cboDataSource.addItem("GeoPackage", "gpkg")
+        self.cboDataSource.addItem("QGIS Project Layers", "qgis_project_layer")
         self.cboDataSource.setCurrentIndex(0)
+
+    def init_cbo_comparison_mode(self):
+        self.cboComparisonMode.addItem(QCoreApplication.translate('CompMode1',"contains"), "contains")
+        self.cboComparisonMode.addItem(QCoreApplication.translate('CompMode2',"begins with"), "begins_with")
+        self.cboComparisonMode.addItem(QCoreApplication.translate('CompMode3',"exact match"), "exact_match")
+        self.cboComparisonMode.setCurrentIndex(0)
 
     def prev_version_config_available(self):
         settings = QSettings()
@@ -131,6 +145,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.init_conn_schema_cbos([], "")
         self.cboTable.setCurrentIndex(0)
         self.populate_columns()
+        self.cboComparisonMode.setCurrentIndex(0)
 
         for cbo in [self.cboSearchColumn, self.cboGeomColumn, self.cboDisplayColumn1, self.cboDisplayColumn2, self.cboDisplayColumn3, self.cboDisplayColumn4, self.cboDisplayColumn5]:
             cbo.setCurrentIndex(0)
@@ -151,6 +166,12 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.cboDataSource.setCurrentIndex(data_type_idx)
         self.cboDataSource.blockSignals(False)
 
+        comparison_mode = settings.value(key + "comparison_mode", "contains")
+        comparison_mode_idx = self.cboComparisonMode.findData(comparison_mode)
+        self.cboComparisonMode.blockSignals(True)
+        self.cboComparisonMode.setCurrentIndex(comparison_mode_idx)
+        self.cboComparisonMode.blockSignals(False)
+
         self.populate_connections()
 
         # tables
@@ -160,19 +181,23 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         # columns
         self.init_combo_from_settings(self.cboSearchColumn, key + "search_column")
         if data_type == "postgres" or data_type == "mssql":
-            self.label_3.setText("Table")
+            self.label_3.setText(QCoreApplication.translate('Table_label3',"Table"))
             self.cboGeomColumn.setEnabled(True)
             self.init_combo_from_settings(self.cboGeomColumn, key + "geom_column")
-        elif data_type == "gpkg":
-            self.label_3.setText("Layer")
+        elif data_type == "gpkg" or data_type == "qgis_project_layer":
+            self.label_3.setText(QCoreApplication.translate('Layer_label3',"Layer"))
             self.cboGeomColumn.clear()
             self.cboGeomColumn.addItem("")
-            self.cboGeomColumn.setEnabled(False)
+#           self.cboGeomColumn.setEnabled(False)
+#           self.editScaleExpr.setEnabled(False)
+#           self.editBboxExpr.setEnabled(False)
 
         self.enable_fields_for_data_type()
 
         echo_search_col = settings.value(key + "echo_search_column", True, type=bool)
         self.cbEchoSearchColumn.setCheckState(Qt.Checked if echo_search_col else Qt.Unchecked)
+        case_sensitivity = settings.value(key + "case_sensitivity", True, type=bool)
+        self.cbCaseSensitivity.setCheckState(Qt.Checked if case_sensitivity else Qt.Unchecked)
 
         columns = settings.value(key + "display_columns", "", type=str)
         if len(columns) != 0:
@@ -191,6 +216,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editBboxExpr.setText(settings.value(key + "bbox_expr", "", type=str))
         self.chkMarkerTime.setChecked(settings.value("marker_time_enabled", True, type=bool))
         self.spinMarkerTime.setValue(settings.value("marker_time", 5000, type=int) / 1000)
+        self.spinMarkerAutoComplete.setValue(settings.value(key + "begin_autocompletion", 3, type=int))
         self.time_checkbox_changed()
 
         QApplication.restoreOverrideCursor()
@@ -245,6 +271,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         elif data_type == "gpkg":
             self.init_combo_from_settings(self.cboFile, key + "file")
             self.populate_tables()
+        elif data_type == "qgis_project_layer":
+            self.populate_tables()
 
     def populate_schemas(self):
         self.cboSchema.clear()
@@ -263,7 +291,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def populate_tables(self):
         self.cboTable.clear()
-        self.cboTable.addItem('')
+#       self.cboTable.addItem('')
         data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
         if data_type == "postgres":
             if self.conn is None: return
@@ -273,6 +301,26 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             tables = mssql_utils.list_tables(self.conn)  # TODO: filter by schema
         elif data_type == "gpkg":
             tables = gpkg_utils.list_gpkg_layers(self.cboFile.currentText())
+        elif data_type == "qgis_project_layer":
+#           Find all the vector layers of the QGIS project and add them to the layer list.
+            layerlist = []
+            self.searchLayers = [] 
+            layers = QgsProject.instance().mapLayers().values()
+            
+            for layer in layers:
+                if layer.type() == QgsMapLayer.VectorLayer:
+                    layerlist.append(layer.name())
+
+            sorted_layerlist = natsorted(layerlist)
+
+            for layername in sorted_layerlist:
+                for layer in layers:
+                    if layer.name() == layername:
+                        self.searchLayers.append(layer)
+
+            self.cboTable.clear()
+            self.cboTable.addItems(sorted_layerlist)
+            return   
         else:
             return   # current index == -1
 
@@ -294,7 +342,26 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             if self.conn is None: return
             columns = mssql_utils.list_columns(self.conn, self.cboSchema.currentText(), self.cboTable.currentText())
         elif data_type == "gpkg":
-            columns = gpkg_utils.list_gpkg_fields(self.cboFile.currentText(), self.cboTable.currentText())
+            if self.cboTable.currentText() != "":
+                columns = gpkg_utils.list_gpkg_fields(self.cboFile.currentText(), self.cboTable.currentText())
+            else:
+                 columns = []
+        elif data_type == "qgis_project_layer":
+            selectedLayer = self.cboTable.currentIndex()
+            self.cboSearchColumn.clear()
+            if selectedLayer > 0:
+                self.cboSearchColumn.setEnabled(True)
+                for field in self.searchLayers[selectedLayer].fields():
+                    self.cboSearchColumn.addItem(field.name())
+                    self.cboDisplayColumn1.addItem(field.name())
+                    self.cboDisplayColumn2.addItem(field.name())
+                    self.cboDisplayColumn3.addItem(field.name())
+                    self.cboDisplayColumn4.addItem(field.name())
+                    self.cboDisplayColumn5.addItem(field.name())
+            else:
+                self.cboSearchColumn.setCurrentIndex(0)
+                self.cboSearchColumn.setEnabled(False)
+            return
         else:
             return   # current index == -1
 
@@ -305,13 +372,24 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def enable_fields_for_data_type(self):
         data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
         is_db = data_type == "mssql" or data_type == "postgres"
+        is_gpkg = data_type == "gpkg" 
+        is_qgspl = data_type == "qgis_project_layer" 
 
-        for w in [self.cboConnection, self.cboSchema, self.label, self.label_2]:
+        for w in [self.cboConnection, self.cboSchema, self.label, self.label_2, self.cboGeomColumn, self.editScaleExpr, self.editBboxExpr,self.label_5,self.label_7,self.label_8]:
             w.setEnabled(is_db)
             w.setVisible(is_db)
-        for w in [self.file_grid_layout, self.cboFile, self.label_10, self.fileButton]:
-            w.setEnabled(not is_db)
-            w.setVisible(not is_db)
+            self.label_3.setText(QCoreApplication.translate('Table_label3',"Table"))
+        for w in [self.cboFile, self.label_10, self.fileButton]:
+            w.setEnabled(is_gpkg)
+            w.setVisible(is_gpkg)
+        if data_type == "qgis_project_layer":
+            self.label_3.setText(QCoreApplication.translate('Layer_label3',"Layer"))
+            self.cboGeomColumn.setVisible(False)
+            self.editScaleExpr.setVisible(False)
+            self.editBboxExpr.setVisible(False)
+            self.label_5.setVisible(False)
+            self.label_7.setVisible(False)
+            self.label_8.setVisible(False)
 
     def validate_key(self, key, config_list):
         if not key: return False
@@ -357,6 +435,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         settings.setValue("marker_time_enabled", self.chkMarkerTime.isChecked())
         settings.setValue("marker_time", self.spinMarkerTime.value()*1000)
+        settings.setValue(key + "begin_autocompletion", self.spinMarkerAutoComplete.value())
+        settings.setValue(key + "comparison_mode", self.cboComparisonMode.itemData(self.cboComparisonMode.currentIndex()))
+        settings.setValue(key + "case_sensitivity", self.cbCaseSensitivity.isChecked())
 
         self.configOptions.clear()
         for k in config_list:
@@ -399,6 +480,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editBboxExpr.setEnabled(enable)
         self.chkMarkerTime.setEnabled(enable)
         self.spinMarkerTime.setEnabled(enable)
+        self.cbCaseSensitivity.setEnabled(enable)
+        self.spinMarkerAutoComplete.setEnabled(enable)
 
     def add_config(self):
         txt = ""
