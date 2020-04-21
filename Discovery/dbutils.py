@@ -50,7 +50,12 @@ def get_postgres_conn_info(selected):
         return {}
 
     conn_info = dict()
-    conn_info["host"] = settings.value("host", "", type=str)
+
+    #Check if a service is provided
+    service = settings.value("service", '', type=str)
+    hasService = len(service) > 0
+    if hasService:
+        conn_info["service"] = service
 
     # password and username
     username = ''
@@ -77,12 +82,19 @@ def get_postgres_conn_info(selected):
     if len(password) > 0:
         conn_info["password"] = password
 
-    # port and database
-    try:
-        conn_info["port"] = settings.value("port", 5432, type=int)
-    except TypeError:
-        pass   # not present
-    conn_info["database"] = settings.value("database", "", type=str)
+    host = settings.value("host", "", type=str)
+    database = settings.value("database", "", type=str)
+    port = settings.value("port", "", type=str)
+
+    #Prevent setting host, port or database to empty string or default value
+    #It may by set in a provided service and would overload it
+    if len(host) > 0:
+        conn_info["host"] = host
+    if len(database) > 0:
+        conn_info["database"] = database
+    if len(port) > 0:
+        conn_info["port"] = int(port)
+
     return conn_info
 
 
