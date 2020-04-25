@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # Discovery Plugin
 #
-# Copyright (C) 2015 Lutra Consulting
+# Copyright (C) 2020 Lutra Consulting
 # info@lutraconsulting.co.uk
 #
 # Thanks to Tim Martin of Ordnance Survey for his original PostGIS Search
@@ -15,10 +13,12 @@
 
 from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt
 from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtWidgets import QAction, QComboBox, QCompleter
+from PyQt5.QtWidgets import QApplication, QAction, QComboBox, QCompleter, QMessageBox
 
+import psycopg2
 import time
 import os.path
+
 from Discovery import gpkg_utils, mssql_utils
 
 from qgis.core import (
@@ -88,6 +88,7 @@ def bbox_str_to_rectangle(bbox_str):
     except ValueError:
         return None
 
+
 def delete_config_from_settings(key, settings):
     settings.remove(key + "data_type")
     settings.remove(key + "file")
@@ -124,6 +125,7 @@ class DiscoveryPlugin:
         self.query_dict = {}
         self.db_idle_time = 60.0  # s
         self.display_time = 5000  # ms
+        self.bar_info_time = 30  # s
 
         self.search_results = []
         self.tool_bar = None
@@ -297,7 +299,6 @@ class DiscoveryPlugin:
                 self.postgistable)
             self.schedule_search(query_text, None)
 
-
     def do_db_operations(self):
         if self.next_query_time is not None and self.next_query_time < time.time():
             # It's time to run a query
@@ -311,23 +312,29 @@ class DiscoveryPlugin:
 
     def perform_search(self):
         db = self.get_db()
+        self.search_results = []
+        suggestions = []
         if self.data_type == "postgres":
             cur = db.cursor()
-            cur.execute(self.query_sql, self.query_dict)
+            try:
+                cur.execute(self.query_sql, self.query_dict)
+            except psycopg2.Error as e:
+                err_info = "Failed to execute the search query. Please, check your settings. Error message:\n\n"
+                err_info += f"{e.pgerror}"
+                QMessageBox.critical(None, "Discovery", err_info)
+                return
             result_set = cur.fetchall()
         elif self.data_type == "mssql":
             result_set = mssql_utils.execute(db, self.query_sql)
         elif self.data_type == "gpkg":
             result_set = gpkg_utils.search_gpkg(*self.query_sql)
 
-        self.search_results = []
-        suggestions = []
         for row in result_set:
             geom, epsg, suggestion_text = row[0], row[1], row[2]
             extra_data = {}
             for idx, extra_col in enumerate(self.extra_expr_columns):
                 extra_data[extra_col] = row[3+idx]
-            self.search_results.append((geom, epsg, extra_data))
+            self.search_results.append((geom, epsg, suggestion_text, extra_data))
             suggestions.append(suggestion_text)
         model = self.completer.model()
         model.setStringList(suggestions)
@@ -339,12 +346,18 @@ class DiscoveryPlugin:
         self.query_dict = query_dict
         self.next_query_time = time.time() + self.search_delay
 
+    def show_bar_info(self, info_text):
+        """Optional show info bar message with selected result information"""
+        self.iface.messageBar().clearWidgets()
+        if self.bar_info_time:
+            self.iface.messageBar().pushMessage("Discovery", info_text, level=Qgis.Info, duration=self.bar_info_time)
+
     def on_result_selected(self, result_index):
         # What to do when the user makes a selection
         self.select_result(self.search_results[result_index.row()])
 
     def select_result(self, result_data):
-        geometry_text, src_epsg, extra_data = result_data
+        geometry_text, src_epsg, suggestion_text, extra_data = result_data
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
         dst_srid = canvas.mapSettings().destinationCrs().authid()
@@ -394,6 +407,10 @@ class DiscoveryPlugin:
             canvas.setExtent(current_extent.boundingBox())
         canvas.refresh()
         self.line_edit_timer.start(0)
+        if self.info_to_clipboard:
+            QApplication.clipboard().setText(suggestion_text)
+            suggestion_text += ' (copied to clipboard)'
+        self.show_bar_info(suggestion_text)
 
     def on_result_highlighted(self, result_idx):
         self.line_edit_timer.start(0)
@@ -415,7 +432,7 @@ class DiscoveryPlugin:
         self.line_edit_timer.start(0)
         self.read_config(self.config_combo.currentText())
 
-    def read_config(self, key = ""):
+    def read_config(self, key=""):
         # the following code reads the configuration file which setups the plugin to search in the correct database,
         # table and method
 
@@ -435,6 +452,11 @@ class DiscoveryPlugin:
             self.display_time = settings.value("marker_time", 5000, type=int)
         else:
             self.display_time = -1
+        if settings.value("bar_info_time_enabled", True, type=bool):
+            self.bar_info_time = settings.value("bar_info_time", 30, type=int)
+        else:
+             self.bar_info_time = 0
+        self.info_to_clipboard = settings.value("info_to_clipboard", True, type=bool)
 
         scale_expr = settings.value(key + "scale_expr", "", type=str)
         bbox_expr = settings.value(key + "bbox_expr", "", type=str)

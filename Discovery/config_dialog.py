@@ -82,6 +82,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.enable_form(False)
 
         self.chkMarkerTime.stateChanged.connect(self.time_checkbox_changed)
+        self.chkBarInfoTime.stateChanged.connect(self.bar_info_checkbox_changed)
 
     def init_cbo_data_source(self):
         self.cboDataSource.addItem("PostgreSQL", "postgres")
@@ -97,7 +98,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         if conn:
             return True
         return False
-
 
     def validate_nameField(self):
         settings = QSettings()
@@ -191,7 +191,11 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.editBboxExpr.setText(settings.value(key + "bbox_expr", "", type=str))
         self.chkMarkerTime.setChecked(settings.value("marker_time_enabled", True, type=bool))
         self.spinMarkerTime.setValue(settings.value("marker_time", 5000, type=int) / 1000)
+        self.chkBarInfoTime.setChecked(settings.value("bar_info_time_enabled", True, type=bool))
+        self.spinBarInfoTime.setValue(settings.value("bar_info_time", 30, type=int))
         self.time_checkbox_changed()
+        self.bar_info_checkbox_changed()
+        self.chkInfoToClipboard.setChecked(settings.value("info_to_clipboard", True, type=bool))
 
         QApplication.restoreOverrideCursor()
 
@@ -356,19 +360,24 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue(key + "bbox_expr", self.editBboxExpr.text())
 
         settings.setValue("marker_time_enabled", self.chkMarkerTime.isChecked())
-        settings.setValue("marker_time", self.spinMarkerTime.value()*1000)
+        settings.setValue("marker_time", self.spinMarkerTime.value() * 1000)
+        settings.setValue("bar_info_time_enabled", self.chkBarInfoTime.isChecked())
+        settings.setValue("bar_info_time", self.spinBarInfoTime.value())
+        settings.setValue("info_to_clipboard", self.chkInfoToClipboard.isChecked())
 
         self.configOptions.clear()
         for k in config_list:
             self.configOptions.addItem(k)
 
         index = self.configOptions.findText(key)
-        if (index != -1):
+        if index != -1:
             self.configOptions.setCurrentIndex(index)
-
 
     def time_checkbox_changed(self):
         self.spinMarkerTime.setEnabled(self.chkMarkerTime.isChecked())
+
+    def bar_info_checkbox_changed(self):
+        self.spinBarInfoTime.setEnabled(self.chkBarInfoTime.isChecked())
 
     def display_columns(self):
         """ Make a string out of display columns, e.g. "column1,column2" or just "column1"
@@ -381,24 +390,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
                 lst.append(txt)
         return ",".join(lst)
 
-    def enable_form(self, enable = True):
-        # TODO put all to one widget and enable/disable only it
-        self.cboName.setEnabled(enable)
-        self.cboConnection.setEnabled(enable)
-        self.cboSchema.setEnabled(enable)
-        self.cboTable.setEnabled(enable)
-        self.cboSearchColumn.setEnabled(enable)
-        self.cbEchoSearchColumn.setEnabled(enable)
-        self.cboDisplayColumn1.setEnabled(enable)
-        self.cboDisplayColumn2.setEnabled(enable)
-        self.cboDisplayColumn3.setEnabled(enable)
-        self.cboDisplayColumn4.setEnabled(enable)
-        self.cboDisplayColumn5.setEnabled(enable)
-        self.cboGeomColumn.setEnabled(enable)
-        self.editScaleExpr.setEnabled(enable)
-        self.editBboxExpr.setEnabled(enable)
-        self.chkMarkerTime.setEnabled(enable)
-        self.spinMarkerTime.setEnabled(enable)
+    def enable_form(self, enable=True):
+        self.datasource_lout.setEnabled(enable)
 
     def add_config(self):
         txt = ""
@@ -420,7 +413,6 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.cboDataSource.setCurrentIndex(0)
         self.populate_connections()
         self.key = txt
-
 
     def delete_config(self):
         if self.configOptions.currentIndex() < 0: return
