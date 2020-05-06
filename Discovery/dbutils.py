@@ -14,7 +14,7 @@ from PyQt5.QtCore import QSettings
 
 import psycopg2
 
-from qgis.core import QgsApplication, QgsAuthMethodConfig
+from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 
 
 def get_connection(conn_info):
@@ -27,24 +27,24 @@ def get_connection(conn_info):
 
 
 def get_postgres_connections():
-    """ Read PostgreSQL connection names from QSettings stored by QGIS
+    """ Read PostgreSQL connection names from QgsSettings stored by QGIS
     """
-    settings = QSettings()
+    settings = QgsSettings()
     settings.beginGroup(u"/PostgreSQL/connections/")
     return settings.childGroups()
 
 
 """
 def current_postgres_connection():
-    settings = QSettings()
+    settings = QgsSettings()
     settings.beginGroup("/Discovery")
     return settings.value("connection", "", type=str)
 """
 
 def get_postgres_conn_info(selected):
-    """ Read PostgreSQL connection details from QSettings stored by QGIS
+    """ Read PostgreSQL connection details from QgsSettings stored by QGIS
     """
-    settings = QSettings()
+    settings = QgsSettings()
     settings.beginGroup(u"/PostgreSQL/connections/" + selected)
     if not settings.contains("database"): # non-existent entry?
         return {}

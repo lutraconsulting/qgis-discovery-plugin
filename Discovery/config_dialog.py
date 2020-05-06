@@ -21,6 +21,8 @@ from . import discoveryplugin
 from . import gpkg_utils
 from . import mssql_utils
 
+from qgis.core import QgsSettings
+
 plugin_dir = os.path.dirname(__file__)
 
 uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_dialog.ui'))
@@ -47,7 +49,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.cboSchema.currentIndexChanged.connect(self.populate_tables)
         self.cboTable.currentIndexChanged.connect(self.populate_columns)
 
-        settings = QSettings()
+        settings = QgsSettings()
         settings.beginGroup("/Discovery")
 
         # init config list

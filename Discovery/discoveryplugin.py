@@ -33,7 +33,8 @@ from qgis.core import (
     QgsGeometry,
     QgsRectangle,
     QgsVectorLayer,
-    QgsWkbTypes
+    QgsWkbTypes,
+    QgsSettings
 )
 from qgis.gui import QgsVertexMarker, QgsFilterLineEdit, QgsRubberBand
 from qgis.utils import iface
@@ -168,7 +169,7 @@ class DiscoveryPlugin:
 
         # Add combobox for configs
         self.config_combo = QComboBox()
-        settings = QSettings()
+        settings = QgsSettings()
         settings.beginGroup("/Discovery")
         config_list = settings.value("config_list")
 
@@ -436,7 +437,7 @@ class DiscoveryPlugin:
         # the following code reads the configuration file which setups the plugin to search in the correct database,
         # table and method
 
-        settings = QSettings()
+        settings = QgsSettings()
         settings.beginGroup("/Discovery")
 
         connection = settings.value(key + "connection", "", type=str)

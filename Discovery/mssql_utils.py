@@ -1,14 +1,14 @@
 import sys
 from PyQt5.QtCore import QSettings
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
-from qgis.core import QgsMessageLog
+from qgis.core import QgsMessageLog, QgsSettings
 from . import dbutils
 
 
 def get_mssql_connections():
-    """ Read PostgreSQL connection names from QSettings stored by QGIS
+    """ Read PostgreSQL connection names from QgsSettings stored by QGIS
     """
-    settings = QSettings()
+    settings = QgsSettings()
     settings.beginGroup(u"/MSSQL/connections/")
     return settings.childGroups()
 
@@ -52,7 +52,7 @@ def get_connection(conn_name, service, host, database, username, password):
 
 
 def get_mssql_conn(connection):
-    settings = QSettings()
+    settings = QgsSettings()
     settings.beginGroup(u"/MSSQL/connections/" + connection)
     service = settings.value('/service', "")
     host = settings.value('/host', "")
