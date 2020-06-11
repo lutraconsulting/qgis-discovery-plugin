@@ -13,6 +13,7 @@
 from PyQt5.QtCore import QSettings
 
 import psycopg2
+import re
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 
@@ -159,6 +160,10 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
             'dl10 4dq'; or
             'dl104dq'
     """
+
+    # escape search text to allow \ backslash characters in search string
+    # i.e. 1\TP => 1\\TP
+    search_text = re.escape(search_text)
 
     wildcarded_search_string = ''
     for part in search_text.split():
