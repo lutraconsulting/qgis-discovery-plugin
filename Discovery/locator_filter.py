@@ -47,7 +47,8 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
                                     self.plugin.postgisdisplaycolumn,
                                     self.plugin.extra_expr_columns,
                                     self.plugin.postgisschema,
-                                    self.plugin.postgistable)
+                                    self.plugin.postgistable,
+                                    self.plugin.escapespecchars)
 
         cur = self.plugin.get_db()
         cur.execute(query_text, query_dict)
