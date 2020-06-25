@@ -106,7 +106,7 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     for part in search_text.split():
         wildcarded_search_string += '%' + part
     wildcarded_search_string += '%'
-    query_text = """ SELECT
+    query_text = """ SELECT TOP 1000
                             [%s].STAsText() AS geom,
                             [%s].STSrid AS epsg,
                      """ % (geom_column, geom_column)
