@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>453</width>
-    <height>617</height>
+    <height>696</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -147,7 +147,7 @@
              <string notr="true">border-bottom:0px</string>
             </property>
             <property name="text">
-             <string>Echo Search Column in Results</string>
+             <string>Echo search column in results</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -301,7 +301,7 @@
           <item row="11" column="0">
            <widget class="QLabel" name="label_6">
             <property name="text">
-             <string>Search Column</string>
+             <string>Search column</string>
             </property>
            </widget>
           </item>
@@ -324,14 +324,14 @@
           <item row="21" column="0">
            <widget class="QLabel" name="label_7">
             <property name="text">
-             <string>Scale Expression</string>
+             <string>Scale expression</string>
             </property>
            </widget>
           </item>
           <item row="22" column="0">
            <widget class="QLabel" name="label_8">
             <property name="text">
-             <string>BBOX Expression</string>
+             <string>BBOX expression</string>
             </property>
            </widget>
           </item>
@@ -468,7 +468,7 @@
           <item row="19" column="0">
            <widget class="QLabel" name="label_5">
             <property name="text">
-             <string>Geometry Column</string>
+             <string>Geometry column</string>
             </property>
            </widget>
           </item>
@@ -505,7 +505,7 @@
           <item row="14" column="0">
            <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>Display Columns</string>
+             <string>Display columns</string>
             </property>
            </widget>
           </item>
@@ -522,7 +522,7 @@
              <string notr="true">border-bottom:0px</string>
             </property>
             <property name="text">
-             <string>Escape Special Characters in Searched Text</string>
+             <string>Escape cpecial characters in search text</string>
             </property>
            </widget>
           </item>

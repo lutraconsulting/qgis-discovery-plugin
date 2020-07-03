@@ -19,6 +19,7 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
 
 changelog=2.5.4
  - Escaping special characters (i.e. backslash) is now optional - by default there is NO escaping.
+ - Tidied-up strings in config dialog
  <p>2.5.3
  - Limited number of results returned by SQL Server provider to 1000
  <p>2.5.2
