@@ -97,6 +97,7 @@ def delete_config_from_settings(key, settings):
     settings.remove(key + "schema")
     settings.remove(key + "table")
     settings.remove(key + "search_column")
+    settings.remove(key + "escape_spec_chars")
     settings.remove(key + "echo_search_column")
     settings.remove(key + "display_columns")
     settings.remove(key + "geom_column")
@@ -190,6 +191,7 @@ class DiscoveryPlugin:
             settings.setValue(key + "schema", settings.value("schema"))
             settings.setValue(key + "table", settings.value("table"))
             settings.setValue(key + "search_column", settings.value("search_column"))
+            settings.setValue(key + "escape_spec_chars", settings.value("escape_spec_chars"))
             settings.setValue(key + "echo_search_column", settings.value("echo_search_column"))
             settings.setValue(key + "display_columns", settings.value("display_columns"))
             settings.setValue(key + "geom_column", settings.value("geom_column"))
@@ -281,7 +283,8 @@ class DiscoveryPlugin:
                                         self.postgisdisplaycolumn,
                                         self.extra_expr_columns,
                                         self.postgisschema,
-                                        self.postgistable)
+                                        self.postgistable,
+                                        self.escapespecchars)
             self.schedule_search(query_text, query_dict)
 
         elif self.data_type == "gpkg":
@@ -446,6 +449,7 @@ class DiscoveryPlugin:
         self.postgisschema = settings.value(key + "schema", "", type=str)
         self.postgistable = settings.value(key + "table", "", type=str)
         self.postgissearchcolumn = settings.value(key + "search_column", "", type=str)
+        self.escapespecchars = settings.value(key + "escape_spec_chars", False, type=bool)
         self.echosearchcolumn = settings.value(key + "echo_search_column", True, type=bool)
         self.postgisdisplaycolumn = settings.value(key + "display_columns", "", type=str)
         self.postgisgeomcolumn = settings.value(key + "geom_column", "", type=str)

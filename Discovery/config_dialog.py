@@ -173,6 +173,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         self.enable_fields_for_data_type()
 
+        escape_spec_chars = settings.value(key + "escape_spec_chars", False, type=bool)
+        self.cbEscapeSpecChars.setCheckState(Qt.Checked if escape_spec_chars else Qt.Unchecked)
         echo_search_col = settings.value(key + "echo_search_column", True, type=bool)
         self.cbEchoSearchColumn.setCheckState(Qt.Checked if echo_search_col else Qt.Unchecked)
 
@@ -355,6 +357,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue(key + "schema", self.cboSchema.currentText())
         settings.setValue(key + "table", self.cboTable.currentText())
         settings.setValue(key + "search_column", self.cboSearchColumn.currentText())
+        settings.setValue(key + "escape_spec_chars", self.cbEscapeSpecChars.isChecked())
         settings.setValue(key + "echo_search_column", self.cbEchoSearchColumn.isChecked())
         settings.setValue(key + "display_columns", self.display_columns())
         settings.setValue(key + "geom_column", self.cboGeomColumn.currentText())

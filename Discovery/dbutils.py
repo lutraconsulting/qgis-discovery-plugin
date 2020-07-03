@@ -142,7 +142,7 @@ def list_columns(cursor, schema, table):
     return sorted(names)
 
 
-def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table):
+def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table, escape_spec_chars):
     """ Returns a tuple: (SQL query text, dictionary with values to replace variables with).
     """
 
@@ -163,7 +163,8 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
 
     # escape search text to allow \ backslash characters in search string
     # i.e. 1\TP => 1\\TP
-    search_text = re.escape(search_text)
+    if escape_spec_chars:
+        search_text = re.escape(search_text)
 
     wildcarded_search_string = ''
     for part in search_text.split():
