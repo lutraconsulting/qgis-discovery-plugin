@@ -197,6 +197,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.spinMarkerTime.setValue(settings.value("marker_time", 5000, type=int) / 1000)
         self.chkBarInfoTime.setChecked(settings.value("bar_info_time_enabled", True, type=bool))
         self.spinBarInfoTime.setValue(settings.value("bar_info_time", 30, type=int))
+        self.spinLimitResults.setValue(settings.value("limit_results", 1000, type=int))
         self.time_checkbox_changed()
         self.bar_info_checkbox_changed()
         self.chkInfoToClipboard.setChecked(settings.value("info_to_clipboard", True, type=bool))
@@ -368,6 +369,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue("marker_time", self.spinMarkerTime.value() * 1000)
         settings.setValue("bar_info_time_enabled", self.chkBarInfoTime.isChecked())
         settings.setValue("bar_info_time", self.spinBarInfoTime.value())
+        settings.setValue("limit_results", self.spinLimitResults.value())
         settings.setValue("info_to_clipboard", self.chkInfoToClipboard.isChecked())
 
         self.configOptions.clear()

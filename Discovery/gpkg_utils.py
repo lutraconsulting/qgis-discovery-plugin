@@ -1,5 +1,6 @@
 from osgeo import ogr, gdal
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsFeatureRequest, QgsExpression
+from .utils import is_number
 
 
 def list_gpkg_layers(pckg_path):
@@ -32,14 +33,18 @@ def list_gpkg_fields(gpkg_path, name, bar_warning=None):
         return []
 
 
-def search_gpkg(search_text, search_field, echo_search_column, display_fields, extra_expr_columns, layer):
+def search_gpkg(search_text, search_field, echo_search_column, display_fields, extra_expr_columns, layer, limit):
     wildcarded_search_string = ''
     for part in search_text.split():
         wildcarded_search_string += '%' + part
     wildcarded_search_string += '%'
     expr_str = "{0} ILIKE '{1}'".format(search_field, wildcarded_search_string)
     expr = QgsExpression(expr_str)
-    it = layer.getFeatures(QgsFeatureRequest(expr))
+    req = QgsFeatureRequest(expr)
+    limit = limit if is_number(limit) else None
+    if limit:
+        req.setLimit(int(limit))
+    it = layer.getFeatures(req)
     result = []
 
     for f in it:

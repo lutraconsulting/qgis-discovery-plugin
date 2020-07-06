@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>453</width>
-    <height>696</height>
+    <height>717</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -522,7 +522,7 @@
              <string notr="true">border-bottom:0px</string>
             </property>
             <property name="text">
-             <string>Escape cpecial characters in search text</string>
+             <string>Escape special characters in search text</string>
             </property>
            </widget>
           </item>
@@ -533,30 +533,6 @@
      </item>
      <item>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="0" column="0">
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <widget class="QCheckBox" name="chkMarkerTime">
-           <property name="text">
-            <string>Auto-hide marker after</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="spinMarkerTime">
-           <property name="suffix">
-            <string> seconds</string>
-           </property>
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="value">
-            <number>5</number>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
        <item row="1" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <property name="bottomMargin">
@@ -587,12 +563,63 @@
          </item>
         </layout>
        </item>
+       <item row="0" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QCheckBox" name="chkMarkerTime">
+           <property name="text">
+            <string>Auto-hide marker after</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinMarkerTime">
+           <property name="suffix">
+            <string> seconds</string>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="value">
+            <number>5</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
        <item row="2" column="0">
         <widget class="QCheckBox" name="chkInfoToClipboard">
          <property name="text">
           <string>Copy selected item info to clipboard</string>
          </property>
         </widget>
+       </item>
+       <item row="3" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <property name="bottomMargin">
+          <number>20</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>Limit fetched results number to</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinLimitResults">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>9999999</number>
+           </property>
+           <property name="value">
+            <number>1000</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
