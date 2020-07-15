@@ -474,7 +474,7 @@ class DiscoveryPlugin:
             self.bar_info_time = settings.value("bar_info_time", 30, type=int)
         else:
              self.bar_info_time = 0
-        self.limit_results = settings.value("limit_results", 1000, type=int)
+        self.limit_results = settings.value(key + "limit_results", 1000, type=int)
         self.info_to_clipboard = settings.value("info_to_clipboard", True, type=bool)
 
         scale_expr = settings.value(key + "scale_expr", "", type=str)
