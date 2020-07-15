@@ -130,6 +130,7 @@ class DiscoveryPlugin:
         self.bar_info_time = 30  # s
 
         self.search_results = []
+        self.limit_results = 1000
         self.tool_bar = None
         self.search_line_edit = None
         self.completer = None
@@ -276,19 +277,29 @@ class DiscoveryPlugin:
 
         if self.data_type == "postgres":
             query_text, query_dict = dbutils.get_search_sql(
-                                        new_search_text,
-                                        self.postgisgeomcolumn,
-                                        self.postgissearchcolumn,
-                                        self.echosearchcolumn,
-                                        self.postgisdisplaycolumn,
-                                        self.extra_expr_columns,
-                                        self.postgisschema,
-                                        self.postgistable,
-                                        self.escapespecchars)
+                new_search_text,
+                self.postgisgeomcolumn,
+                self.postgissearchcolumn,
+                self.echosearchcolumn,
+                self.postgisdisplaycolumn,
+                self.extra_expr_columns,
+                self.postgisschema,
+                self.postgistable,
+                self.escapespecchars,
+                self.limit_results
+            )
             self.schedule_search(query_text, query_dict)
 
         elif self.data_type == "gpkg":
-            query_text = (new_search_text, self.postgissearchcolumn, self.echosearchcolumn, self.postgisdisplaycolumn.split(","), self.extra_expr_columns, self.layer)
+            query_text = (
+                new_search_text,
+                self.postgissearchcolumn,
+                self.echosearchcolumn,
+                self.postgisdisplaycolumn.split(","),
+                self.extra_expr_columns,
+                self.layer,
+                self.limit_results
+            )
             self.schedule_search(query_text, None)
 
         elif self.data_type == "mssql":
@@ -300,7 +311,9 @@ class DiscoveryPlugin:
                 self.postgisdisplaycolumn,
                 self.extra_expr_columns,
                 self.postgisschema,
-                self.postgistable)
+                self.postgistable,
+                self.limit_results
+            )
             self.schedule_search(query_text, None)
 
     def do_db_operations(self):
@@ -461,6 +474,7 @@ class DiscoveryPlugin:
             self.bar_info_time = settings.value("bar_info_time", 30, type=int)
         else:
              self.bar_info_time = 0
+        self.limit_results = settings.value("limit_results", 1000, type=int)
         self.info_to_clipboard = settings.value("info_to_clipboard", True, type=bool)
 
         scale_expr = settings.value(key + "scale_expr", "", type=str)

@@ -3,6 +3,7 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from qgis.core import QgsMessageLog, QgsSettings
 from . import dbutils
+from .utils import is_number
 
 
 def get_mssql_connections():
@@ -101,15 +102,16 @@ def _quote_brackets(identifier):
     """ quote identifier as [<identifier>]"""
     return u'[%s]' % identifier.replace('"', '""')
 
-def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table):
+def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table, limit):
     wildcarded_search_string = ''
     for part in search_text.split():
         wildcarded_search_string += '%' + part
     wildcarded_search_string += '%'
-    query_text = """ SELECT TOP 1000
+    limit = f"{int(limit)}" if is_number(limit) else "1000"
+    query_text = """ SELECT TOP %s
                             [%s].STAsText() AS geom,
                             [%s].STSrid AS epsg,
-                     """ % (geom_column, geom_column)
+                     """ % (limit, geom_column, geom_column)
 
     info_columns = []
     if echo_search_column:

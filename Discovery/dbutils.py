@@ -17,6 +17,8 @@ import re
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 
+from .utils import is_number
+
 
 def get_connection(conn_info):
     """ Connect to the database using conn_info dict:
@@ -142,7 +144,7 @@ def list_columns(cursor, schema, table):
     return sorted(names)
 
 
-def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table, escape_spec_chars):
+def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table, escape_spec_chars, limit):
     """ Returns a tuple: (SQL query text, dictionary with values to replace variables with).
     """
 
@@ -206,9 +208,11 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
                   """ % (schema, table, search_column)
     query_text += """   %(search_text)s
                   """
+
+    limit = f"{int(limit)}" if is_number(limit) else "1000"
     query_text += """ORDER BY
                         "%s"
-                    LIMIT 1000
-                  """ % search_column
+                    LIMIT %s
+                  """ % (search_column, limit)
 
     return query_text, query_dict
