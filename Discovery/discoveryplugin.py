@@ -337,7 +337,7 @@ class DiscoveryPlugin:
                 cur.execute(self.query_sql, self.query_dict)
             except psycopg2.Error as e:
                 err_info = "Failed to execute the search query. Please, check your settings. Error message:\n\n"
-                err_info += f"{e.pgerror}"
+                err_info += "{}".format(e.pgerror)
                 QMessageBox.critical(None, "Discovery", err_info)
                 return
             result_set = cur.fetchall()

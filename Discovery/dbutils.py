@@ -209,7 +209,7 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
     query_text += """   %(search_text)s
                   """
 
-    limit = f"{int(limit)}" if is_number(limit) else "1000"
+    limit = "{}".format(int(limit)) if is_number(limit) else "1000"
     query_text += """ORDER BY
                         "%s"
                     LIMIT %s
