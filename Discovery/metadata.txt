@@ -3,7 +3,7 @@ name=Discovery
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Provides search / gazetteer functionality in QGIS using PostGIS, MSSQL and Geopackge databases
-version=2.5.5
+version=2.5.6
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -17,7 +17,9 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
  - Can use multiple fields to display result context
  - Simple GUI-based configuration
 
-changelog=2.5.5
+changelog=2.5.6
+ - Limit for search results is now per config parameter, i.e. users can set different limits for their configs
+<p>2.5.5
  - Configurable limit of fetched results number for all providers
  <p>2.5.4
  - Escaping special characters (i.e. backslash) is now optional - by default there is NO escaping.
