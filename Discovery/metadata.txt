@@ -2,7 +2,7 @@
 name=Discovery
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
-description=Provides search / gazetteer functionality in QGIS using PostGIS, MSSQL and Geopackge databases
+description=Provides search / gazetteer functionality in QGIS using PostGIS, MSSQL and Geopackage databases
 version=2.5.6
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
