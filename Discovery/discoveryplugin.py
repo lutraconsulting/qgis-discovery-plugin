@@ -480,6 +480,15 @@ class DiscoveryPlugin:
         scale_expr = settings.value(key + "scale_expr", "", type=str)
         bbox_expr = settings.value(key + "bbox_expr", "", type=str)
 
+        m_color = QColor()
+        m_color_name = settings.value(key + "highlight_color", "#e21b1c", type=str)
+        m_color.setNamedColor(m_color_name)
+        self.marker.setColor(m_color)
+        self.rubber_band.setStrokeColor(m_color)
+        f_color = m_color
+        f_color.setAlpha(63)
+        self.rubber_band.setFillColor(f_color)
+
         if self.is_displayed:
             self.hide_marker()
             self.hide_rubber_band()

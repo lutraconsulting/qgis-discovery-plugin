@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>453</width>
-    <height>717</height>
+    <height>693</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -29,7 +29,7 @@
    <string>Configuration</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="21" column="0">
+   <item row="23" column="0">
     <widget class="QLabel" name="lblMessage">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -42,71 +42,6 @@
      </property>
      <property name="wordWrap">
       <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout_5">
-     <property name="bottomMargin">
-      <number>0</number>
-     </property>
-     <item>
-      <widget class="QLabel" name="label_11">
-       <property name="text">
-        <string>Data source type</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="cboDataSource">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="editable">
-        <bool>false</bool>
-       </property>
-       <property name="insertPolicy">
-        <enum>QComboBox::NoInsert</enum>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="3" column="0">
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="0">
-      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="10,0,0">
-       <item>
-        <widget class="QComboBox" name="configOptions"/>
-       </item>
-       <item>
-        <widget class="QPushButton" name="addButton">
-         <property name="text">
-          <string>+</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="deleteButton">
-         <property name="text">
-          <string>-</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </item>
-   <item row="23" column="0" colspan="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
@@ -141,16 +76,19 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item row="13" column="0" colspan="2">
-           <widget class="QCheckBox" name="cbEchoSearchColumn">
-            <property name="styleSheet">
-             <string notr="true">border-bottom:0px</string>
+          <item row="19" column="1">
+           <widget class="QComboBox" name="cboGeomColumn">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
-            <property name="text">
-             <string>Echo search column in results</string>
-            </property>
-            <property name="checked">
+            <property name="editable">
              <bool>true</bool>
+            </property>
+            <property name="insertPolicy">
+             <enum>QComboBox::NoInsert</enum>
             </property>
            </widget>
           </item>
@@ -170,8 +108,21 @@
             </property>
            </widget>
           </item>
-          <item row="19" column="1">
-           <widget class="QComboBox" name="cboGeomColumn">
+          <item row="13" column="0" colspan="2">
+           <widget class="QCheckBox" name="cbEchoSearchColumn">
+            <property name="styleSheet">
+             <string notr="true">border-bottom:0px</string>
+            </property>
+            <property name="text">
+             <string>Echo search column in results</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="cboConnection">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -218,8 +169,11 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
-           <widget class="QComboBox" name="cboConnection">
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="cboName"/>
+          </item>
+          <item row="14" column="1">
+           <widget class="QComboBox" name="cboDisplayColumn1">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -233,9 +187,6 @@
              <enum>QComboBox::NoInsert</enum>
             </property>
            </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLineEdit" name="cboName"/>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_10">
@@ -256,22 +207,6 @@
             </property>
            </widget>
           </item>
-          <item row="14" column="1">
-           <widget class="QComboBox" name="cboDisplayColumn1">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="editable">
-             <bool>true</bool>
-            </property>
-            <property name="insertPolicy">
-             <enum>QComboBox::NoInsert</enum>
-            </property>
-           </widget>
-          </item>
           <item row="11" column="1">
            <widget class="QComboBox" name="cboSearchColumn">
             <property name="sizePolicy">
@@ -285,16 +220,6 @@
             </property>
             <property name="insertPolicy">
              <enum>QComboBox::NoInsert</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="21" column="1">
-           <widget class="QLineEdit" name="editScaleExpr"/>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Schema</string>
             </property>
            </widget>
           </item>
@@ -321,12 +246,8 @@
             </property>
            </widget>
           </item>
-          <item row="21" column="0">
-           <widget class="QLabel" name="label_7">
-            <property name="text">
-             <string>Scale expression</string>
-            </property>
-           </widget>
+          <item row="22" column="1">
+           <widget class="QLineEdit" name="editBboxExpr"/>
           </item>
           <item row="22" column="0">
            <widget class="QLabel" name="label_8">
@@ -335,11 +256,79 @@
             </property>
            </widget>
           </item>
-          <item row="22" column="1">
-           <widget class="QLineEdit" name="editBboxExpr"/>
+          <item row="21" column="0">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>Scale expression</string>
+            </property>
+           </widget>
           </item>
           <item row="15" column="1">
            <widget class="QComboBox" name="cboDisplayColumn2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+            <property name="insertPolicy">
+             <enum>QComboBox::NoInsert</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="21" column="1">
+           <widget class="QLineEdit" name="editScaleExpr"/>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Schema</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="0" colspan="2">
+           <widget class="QCheckBox" name="cbEscapeSpecChars">
+            <property name="styleSheet">
+             <string notr="true">border-bottom:0px</string>
+            </property>
+            <property name="text">
+             <string>Escape special characters in search text</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>Table</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Connection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="19" column="0">
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Geometry column</string>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="text">
+             <string>Display columns</string>
+            </property>
+           </widget>
+          </item>
+          <item row="18" column="1">
+           <widget class="QComboBox" name="cboDisplayColumn5">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -465,20 +454,6 @@
             </layout>
            </widget>
           </item>
-          <item row="19" column="0">
-           <widget class="QLabel" name="label_5">
-            <property name="text">
-             <string>Geometry column</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Connection</string>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_9">
             <property name="text">
@@ -486,45 +461,15 @@
             </property>
            </widget>
           </item>
-          <item row="18" column="1">
-           <widget class="QComboBox" name="cboDisplayColumn5">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="editable">
-             <bool>true</bool>
-            </property>
-            <property name="insertPolicy">
-             <enum>QComboBox::NoInsert</enum>
+          <item row="23" column="0">
+           <widget class="QLabel" name="label_13">
+            <property name="text">
+             <string>Highlight colour</string>
             </property>
            </widget>
           </item>
-          <item row="14" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>Display columns</string>
-            </property>
-           </widget>
-          </item>
-          <item row="10" column="0">
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>Table</string>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="0" colspan="2">
-           <widget class="QCheckBox" name="cbEscapeSpecChars">
-            <property name="styleSheet">
-             <string notr="true">border-bottom:0px</string>
-            </property>
-            <property name="text">
-             <string>Escape special characters in search text</string>
-            </property>
-           </widget>
+          <item row="23" column="1">
+           <widget class="QgsColorButton" name="color_picker"/>
           </item>
          </layout>
         </item>
@@ -597,7 +542,7 @@
        <item row="3" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <property name="bottomMargin">
-          <number>20</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QLabel" name="label_12">
@@ -625,8 +570,93 @@
      </item>
     </layout>
    </item>
+   <item row="25" column="0" colspan="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="0" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="10,0,0">
+       <item>
+        <widget class="QComboBox" name="configOptions"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="addButton">
+         <property name="text">
+          <string>+</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="deleteButton">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item row="4" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Data source type</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="cboDataSource">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="insertPolicy">
+        <enum>QComboBox::NoInsert</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="22" column="0">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsColorButton</class>
+   <extends>QToolButton</extends>
+   <header>qgscolorbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>buttonBox</tabstop>
  </tabstops>
@@ -639,8 +669,8 @@
    <slot>validate_and_accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>257</x>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -655,8 +685,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>325</x>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
