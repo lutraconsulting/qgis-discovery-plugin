@@ -13,7 +13,7 @@
 import os
 
 from PyQt5.QtCore import QSettings, Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices, QColor
 from PyQt5.QtWidgets import QApplication, QDialogButtonBox, QMessageBox, QFileDialog, QDialog
 from PyQt5 import uic
 from . import dbutils
@@ -193,6 +193,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         self.editScaleExpr.setText(settings.value(key + "scale_expr", "", type=str))
         self.editBboxExpr.setText(settings.value(key + "bbox_expr", "", type=str))
+        h_color = QColor()
+        h_color.setNamedColor(settings.value(key + "highlight_color", "#FF0000", type=str))
+        self.color_picker.setColor(h_color)
         self.chkMarkerTime.setChecked(settings.value("marker_time_enabled", True, type=bool))
         self.spinMarkerTime.setValue(settings.value("marker_time", 5000, type=int) / 1000)
         self.chkBarInfoTime.setChecked(settings.value("bar_info_time_enabled", True, type=bool))
@@ -364,6 +367,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         settings.setValue(key + "geom_column", self.cboGeomColumn.currentText())
         settings.setValue(key + "scale_expr", self.editScaleExpr.text())
         settings.setValue(key + "bbox_expr", self.editBboxExpr.text())
+        settings.setValue(key + "highlight_color", self.color_picker.color().name())
 
         settings.setValue("marker_time_enabled", self.chkMarkerTime.isChecked())
         settings.setValue("marker_time", self.spinMarkerTime.value() * 1000)
