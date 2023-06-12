@@ -150,7 +150,7 @@ class DiscoveryPlugin:
         self.marker2.setVisible(False)
         self.is_displayed = False
 
-        self.rubber_band = QgsRubberBand(iface.mapCanvas(), False)
+        self.rubber_band = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
         self.rubber_band.setVisible(False)
         self.rubber_band.setWidth(3)
         self.rubber_band.setStrokeColor(QColor(226, 27, 28))
