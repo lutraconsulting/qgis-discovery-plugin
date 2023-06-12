@@ -329,6 +329,8 @@ class DiscoveryPlugin:
 
     def perform_search(self):
         db = self.get_db()
+        if db is None:
+            return
         self.search_results = []
         suggestions = []
         if self.data_type == "postgres":
@@ -436,12 +438,21 @@ class DiscoveryPlugin:
         self.search_line_edit.setText(self.query_text)
 
     def get_db(self):
-        # Create a new new connection if required
+        # Create a new connection if required
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if self.db_conn is None:
             if self.data_type == "postgres":
-                self.db_conn = dbutils.get_connection(self.conn_info)
+                try:
+                    self.db_conn = dbutils.get_connection(self.conn_info)
+                except psycopg2.Error as e:
+                    err_info = "Failed to connect to the server. Error message:\n\n"
+                    err_info += f"{e.pgerror} - {e}"
+                    QMessageBox.critical(None, "Discovery", err_info)
+                    QApplication.restoreOverrideCursor()
+                    return
             elif self.data_type == "mssql":
                 self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
+        QApplication.restoreOverrideCursor()
         return self.db_conn
 
     def change_configuration(self):
