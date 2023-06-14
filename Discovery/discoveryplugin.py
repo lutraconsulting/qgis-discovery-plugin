@@ -11,7 +11,7 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt
+from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt, QTranslator, QCoreApplication
 from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtWidgets import QApplication, QAction, QComboBox, QCompleter, QMessageBox
 
@@ -112,6 +112,14 @@ class DiscoveryPlugin:
         self.iface = _iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+      
+        # Localize
+        locale = QSettings().value("locale/userLocale")[0:2]
+        localePath = os.path.join(self.plugin_dir, 'i18n', 'discovery_{}.qm'.format(locale))
+        if os.path.exists(localePath):
+            self.translator = QTranslator()
+            self.translator.load(localePath)
+            QCoreApplication.installTranslator(self.translator)    
 
         # Variables to facilitate delayed queries and database connection management
         self.db_timer = QTimer()
