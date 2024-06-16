@@ -380,7 +380,7 @@ class DiscoveryPlugin:
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
         dst_srid = canvas.mapSettings().destinationCrs().authid()
-        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(src_epsg),
+        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem.fromEpsgId(src_epsg),
                                            QgsCoordinateReferenceSystem(dst_srid),
                                            canvas.mapSettings().transformContext())
         # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas

@@ -197,7 +197,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         h_color.setNamedColor(settings.value(key + "highlight_color", "#FF0000", type=str))
         self.color_picker.setColor(h_color)
         self.chkMarkerTime.setChecked(settings.value("marker_time_enabled", True, type=bool))
-        self.spinMarkerTime.setValue(settings.value("marker_time", 5000, type=int) / 1000)
+        self.spinMarkerTime.setValue(settings.value("marker_time", 5000, type=int) // 1000)
         self.chkBarInfoTime.setChecked(settings.value("bar_info_time_enabled", True, type=bool))
         self.spinBarInfoTime.setValue(settings.value("bar_info_time", 30, type=int))
         self.spinLimitResults.setValue(settings.value(key + "limit_results", 1000, type=int))
