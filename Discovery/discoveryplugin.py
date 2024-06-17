@@ -19,7 +19,7 @@ import psycopg2
 import time
 import os.path
 
-from Discovery import gpkg_utils, mssql_utils
+from Discovery import gpkg_utils, mssql_utils, oracle_utils
 
 from qgis.core import (
     Qgis,
@@ -316,6 +316,20 @@ class DiscoveryPlugin:
             )
             self.schedule_search(query_text, None)
 
+        elif self.data_type == "oracle":
+            query_text = oracle_utils.get_search_sql(
+                new_search_text,
+                self.postgisgeomcolumn,
+                self.postgissearchcolumn,
+                self.echosearchcolumn,
+                self.postgisdisplaycolumn,
+                self.extra_expr_columns,
+                self.postgisschema,
+                self.postgistable,
+                self.limit_results
+            )
+            self.schedule_search(query_text, None)
+
     def do_db_operations(self):
         if self.next_query_time is not None and self.next_query_time < time.time():
             # It's time to run a query
@@ -345,6 +359,8 @@ class DiscoveryPlugin:
             result_set = cur.fetchall()
         elif self.data_type == "mssql":
             result_set = mssql_utils.execute(db, self.query_sql)
+        elif self.data_type == "oracle":
+            result_set = oracle_utils.execute(db, self.query_sql)
         elif self.data_type == "gpkg":
             result_set = gpkg_utils.search_gpkg(*self.query_sql)
 
@@ -380,7 +396,7 @@ class DiscoveryPlugin:
         location_geom = QgsGeometry.fromWkt(geometry_text)
         canvas = self.iface.mapCanvas()
         dst_srid = canvas.mapSettings().destinationCrs().authid()
-        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem.fromEpsgId(src_epsg),
+        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem.fromEpsgId(int(src_epsg)),
                                            QgsCoordinateReferenceSystem(dst_srid),
                                            canvas.mapSettings().transformContext())
         # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
@@ -452,6 +468,8 @@ class DiscoveryPlugin:
                     return
             elif self.data_type == "mssql":
                 self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
+            elif self.data_type == "oracle":
+                self.db_conn = oracle_utils.get_oracle_conn(self.conn_info)
         QApplication.restoreOverrideCursor()
         return self.db_conn
 
@@ -520,8 +538,20 @@ class DiscoveryPlugin:
                 iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
                                                level=Qgis.Critical)
                 return
-        if self.data_type == "mssql":
+        elif self.data_type == "mssql":
             self.conn_info = mssql_utils.get_mssql_conn_info(connection)
+            self.layer = None
+
+            if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
+                    len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
+                return
+
+            if len(self.conn_info) == 0:
+                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
+                                               level=Qgis.Critical)
+                return
+        elif self.data_type == "oracle":
+            self.conn_info = oracle_utils.get_oracle_conn_info(connection)
             self.layer = None
 
             if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \

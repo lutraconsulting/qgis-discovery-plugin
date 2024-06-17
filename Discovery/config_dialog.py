@@ -20,6 +20,7 @@ from . import dbutils
 from . import discoveryplugin
 from . import gpkg_utils
 from . import mssql_utils
+from . import oracle_utils
 
 from qgis.core import QgsSettings
 
@@ -89,6 +90,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
     def init_cbo_data_source(self):
         self.cboDataSource.addItem("PostgreSQL", "postgres")
         self.cboDataSource.addItem("MS SQL Server", "mssql")
+        self.cboDataSource.addItem("Oracle", "oracle")
         self.cboDataSource.addItem("GeoPackage", "gpkg")
         self.cboDataSource.setCurrentIndex(0)
 
@@ -161,7 +163,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
         # columns
         self.init_combo_from_settings(self.cboSearchColumn, key + "search_column")
-        if data_type == "postgres" or data_type == "mssql":
+        if data_type in ("postgres", "mssql", "oracle"):
             self.label_3.setText("Table")
             self.cboGeomColumn.setEnabled(True)
             self.init_combo_from_settings(self.cboGeomColumn, key + "geom_column")
@@ -239,6 +241,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
                 self.conn = dbutils.get_connection(dbutils.get_postgres_conn_info(name))
             elif data_type == "mssql":
                 self.conn = mssql_utils.get_mssql_conn(mssql_utils.get_mssql_conn_info(name))
+            elif data_type == "oracle":
+                self.conn = oracle_utils.get_oracle_conn(oracle_utils.get_oracle_conn_info(name))
             self.lblMessage.setText("")
         except Exception as e:
             self.conn = None
@@ -254,6 +258,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         elif data_type == "mssql":
             current_connections = mssql_utils.get_mssql_connections()
             self.init_conn_schema_cbos(current_connections, key)
+        elif data_type == "oracle":
+            current_connections = oracle_utils.get_oracle_connections()
+            self.init_conn_schema_cbos(current_connections, key)
         elif data_type == "gpkg":
             self.init_combo_from_settings(self.cboFile, key + "file")
             self.populate_tables()
@@ -268,6 +275,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             schemas = dbutils.list_schemas(self.conn.cursor())
         elif data_type == "mssql":
             schemas = mssql_utils.list_schemas(self.conn)
+        elif data_type == "oracle":
+            schemas = oracle_utils.list_schemas(self.conn)
         else:
             schemas = []
         for schema in schemas:
@@ -283,6 +292,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         elif data_type == "mssql":
             if self.conn is None: return
             tables = mssql_utils.list_tables(self.conn)  # TODO: filter by schema
+        elif data_type == "oracle":
+            if self.conn is None: return
+            tables = oracle_utils.list_tables(self.conn, self.cboSchema.currentText())
         elif data_type == "gpkg":
             tables = gpkg_utils.list_gpkg_layers(self.cboFile.currentText())
         else:
@@ -305,6 +317,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         elif data_type == "mssql":
             if self.conn is None: return
             columns = mssql_utils.list_columns(self.conn, self.cboSchema.currentText(), self.cboTable.currentText())
+        elif data_type == "oracle":
+            if self.conn is None: return
+            columns = oracle_utils.list_columns(self.conn, self.cboSchema.currentText(), self.cboTable.currentText())
         elif data_type == "gpkg":
             columns = gpkg_utils.list_gpkg_fields(self.cboFile.currentText(), self.cboTable.currentText())
         else:
@@ -316,7 +331,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def enable_fields_for_data_type(self):
         data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
-        is_db = data_type == "mssql" or data_type == "postgres"
+        is_db = data_type in ("mssql", "oracle", "postgres")
 
         for w in [self.cboConnection, self.cboSchema, self.label, self.label_2]:
             w.setEnabled(is_db)
