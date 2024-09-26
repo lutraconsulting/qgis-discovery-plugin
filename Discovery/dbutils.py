@@ -204,7 +204,7 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
                   FROM
                         "%s"."%s"
                      WHERE
-                        "%s" ILIKE
+                        "%s"::text ILIKE
                   """ % (schema, table, search_column)
     query_text += """   %(search_text)s
                   """
