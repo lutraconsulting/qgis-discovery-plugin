@@ -11,7 +11,7 @@
 # (at your option) any later version.
 
 
-from qgis.core import QgsLocatorFilter, QgsLocatorResult
+from qgis.core import QgsMessageLog, QgsLocatorFilter, QgsLocatorResult
 
 from . import config_dialog
 from . import dbutils
@@ -53,6 +53,9 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
         )
 
         cur = self.plugin.get_db()
+        if not cur:
+            QgsMessageLog.logMessage("The Locator Bar filter is currently only supported on PostGIS", "Discovery")
+            return
         cur.execute(query_text, query_dict)
 
         for row in cur.fetchall():
