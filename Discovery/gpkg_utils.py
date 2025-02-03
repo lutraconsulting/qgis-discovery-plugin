@@ -50,7 +50,7 @@ def search_gpkg(search_text, search_field, echo_search_column, display_fields, e
     for f in it:
         feature_info = []
         geom = f.geometry().asWkt()
-        epsg = layer.crs().authid()
+        epsg = int(layer.crs().authid().lstrip("EPSG:"))  # only the plain integer code is wanted later on
         feature_info.append(geom)
         feature_info.append(epsg)
         available_fields = [field.name() for field in f.fields()]
@@ -70,4 +70,3 @@ def search_gpkg(search_text, search_field, echo_search_column, display_fields, e
                 feature_info.append("")
         result.append(feature_info)
     return result
-
