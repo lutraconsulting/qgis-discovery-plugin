@@ -1,5 +1,5 @@
 from osgeo import ogr, gdal
-from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsFeatureRequest, QgsExpression
+from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsFeatureRequest, QgsExpression, QgsMessageLog
 from .utils import is_number
 
 
@@ -50,7 +50,15 @@ def search_gpkg(search_text, search_field, echo_search_column, display_fields, e
     for f in it:
         feature_info = []
         geom = f.geometry().asWkt()
-        epsg = int(layer.crs().authid().lstrip("EPSG:"))  # only the plain integer code is wanted later on
+
+        crs_auth_id = layer.crs().authid()
+        try:
+            # only the plain integer code is wanted later on
+            epsg = int(crs_auth_id.lstrip("EPSG:"))
+        except ValueError:
+            QgsMessageLog.logMessage(f"{crs_auth_id} is not an EPSG code.", "Discovery")
+            return []
+
         feature_info.append(geom)
         feature_info.append(epsg)
         available_fields = [field.name() for field in f.fields()]
