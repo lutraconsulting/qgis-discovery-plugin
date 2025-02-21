@@ -329,8 +329,9 @@ class DiscoveryPlugin:
 
     def perform_search(self):
         db = self.get_db()
-        if db is None:
+        if db is None and self.data_type != "gpkg":
             return
+
         self.search_results = []
         suggestions = []
         if self.data_type == "postgres":
