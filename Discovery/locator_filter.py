@@ -52,13 +52,14 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
                                     self.plugin.limit_results,
         )
 
-        cur = self.plugin.get_db()
-        if not cur:
+        conn = self.plugin.get_db()
+        if not conn:
             QgsMessageLog.logMessage("The Locator Bar filter is currently only supported on PostGIS", "Discovery")
             return
-        cur.execute(query_text, query_dict)
+        cursor = conn.cursor()
+        cursor.execute(query_text, query_dict)
 
-        for row in cur.fetchall():
+        for row in cursor.fetchall():
 
             if feedback.isCanceled():
                 return
