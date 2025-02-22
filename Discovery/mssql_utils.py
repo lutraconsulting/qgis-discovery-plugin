@@ -1,16 +1,16 @@
 import sys
-from PyQt5.QtCore import QSettings
+
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from qgis.core import QgsMessageLog, QgsSettings
+
 from . import dbutils
 from .utils import is_number
 
 
 def get_mssql_connections():
-    """ Read PostgreSQL connection names from QgsSettings stored by QGIS
-    """
+    """Read PostgreSQL connection names from QgsSettings stored by QGIS"""
     settings = QgsSettings()
-    settings.beginGroup(u"/MSSQL/connections/")
+    settings.beginGroup("/MSSQL/connections/")
     return settings.childGroups()
 
 
@@ -54,18 +54,17 @@ def get_connection(conn_name, service, host, database, username, password):
 
 def get_mssql_conn(connection):
     settings = QgsSettings()
-    settings.beginGroup(u"/MSSQL/connections/" + connection)
-    service = settings.value('/service', "")
-    host = settings.value('/host', "")
-    database = settings.value('/database', "")
-    username = settings.value('/username', "")
-    password = settings.value('/password', "")
+    settings.beginGroup("/MSSQL/connections/" + connection)
+    service = settings.value("/service", "")
+    host = settings.value("/host", "")
+    database = settings.value("/database", "")
+    username = settings.value("/username", "")
+    password = settings.value("/password", "")
     return get_connection(connection, service, host, database, username, password)
 
 
 def list_schemas(db):
-    """ Get list of schema names
-       """
+    """Get list of schema names"""
     query = QSqlQuery(db)
     query_text = """SELECT schema_name
             FROM information_schema.schemata
@@ -90,7 +89,10 @@ def list_tables(db):
 def list_columns(db, schema, table):
     query_text = """SELECT COLUMN_NAME
                 FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = '%s' AND TABLE_SCHEMA ='%s';""" % (dbutils._quote_str(table), dbutils._quote_str(schema))
+                WHERE TABLE_NAME = '%s' AND TABLE_SCHEMA ='%s';""" % (
+        dbutils._quote_str(table),
+        dbutils._quote_str(schema),
+    )
     query = QSqlQuery(db)
     query.exec(query_text)
     names = []
@@ -98,26 +100,42 @@ def list_columns(db, schema, table):
         names.append(query.value(0))
     return names
 
-def _quote_brackets(identifier):
-    """ quote identifier as [<identifier>]"""
-    return u'[%s]' % identifier.replace('"', '""')
 
-def get_search_sql(search_text, geom_column, search_column, echo_search_column, display_columns, extra_expr_columns, schema, table, limit):
-    wildcarded_search_string = ''
+def _quote_brackets(identifier):
+    """quote identifier as [<identifier>]"""
+    return "[%s]" % identifier.replace('"', '""')
+
+
+def get_search_sql(
+    search_text,
+    geom_column,
+    search_column,
+    echo_search_column,
+    display_columns,
+    extra_expr_columns,
+    schema,
+    table,
+    limit,
+):
+    wildcarded_search_string = ""
     for part in search_text.split():
-        wildcarded_search_string += '%' + part
-    wildcarded_search_string += '%'
+        wildcarded_search_string += "%" + part
+    wildcarded_search_string += "%"
     limit = "{}".format(int(limit)) if is_number(limit) else "1000"
     query_text = """ SELECT TOP %s
                             [%s].STAsText() AS geom,
                             [%s].STSrid AS epsg,
-                     """ % (limit, geom_column, geom_column)
+                     """ % (
+        limit,
+        geom_column,
+        geom_column,
+    )
 
     info_columns = []
     if echo_search_column:
         info_columns.append(_quote_brackets(search_column))
     if len(display_columns) > 0:
-        for display_column in display_columns.split(','):
+        for display_column in display_columns.split(","):
             info_columns.append(_quote_brackets(display_column))
 
     if len(info_columns) == 0:
@@ -129,17 +147,27 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
         query_text += "CONCAT( %s ) AS suggestion_string" % joined_info_columns
 
     for extra_column in extra_expr_columns:
-        query_text += ', [%s]' % extra_column
+        query_text += ", [%s]" % extra_column
     query_text += """
                       FROM
                             [%s].[%s]
                       WHERE [%s] LIKE
-                      """ % (schema, table, search_column)
-    query_text += """   '%s'
-                      """ % wildcarded_search_string
-    query_text += """ORDER BY
+                      """ % (
+        schema,
+        table,
+        search_column,
+    )
+    query_text += (
+        """   '%s'
+                      """
+        % wildcarded_search_string
+    )
+    query_text += (
+        """ORDER BY
                             [%s]
-                      """ % search_column
+                      """
+        % search_column
+    )
 
     return query_text
 
@@ -147,7 +175,7 @@ def get_search_sql(search_text, geom_column, search_column, echo_search_column, 
 def execute(db, query_text):
     query = QSqlQuery(db)
     if not query.exec(query_text):
-        QgsMessageLog.logMessage( query.lastError().text() + "\n\nQuery:\n" + query_text, "Discovery")
+        QgsMessageLog.logMessage(query.lastError().text() + "\n\nQuery:\n" + query_text, "Discovery")
         return []
 
     record = query.record()

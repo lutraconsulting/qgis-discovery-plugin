@@ -12,7 +12,7 @@
 
 
 def is_number(s):
-    """ Return True if s is a number """
+    """Return True if s is a number"""
     try:
         float(s)
         return True

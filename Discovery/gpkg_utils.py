@@ -1,10 +1,12 @@
-from osgeo import ogr, gdal
-from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsFeatureRequest, QgsExpression, QgsMessageLog
+from osgeo import gdal, ogr
+from qgis.core import QgsExpression, QgsFeatureRequest, QgsMessageLog, QgsVectorLayer
+
 from .utils import is_number
 
 
 def list_gpkg_layers(pckg_path):
-    if not pckg_path: return []
+    if not pckg_path:
+        return []
 
     layer_names = []
     ds = gdal.OpenEx(pckg_path)
@@ -21,23 +23,23 @@ def list_gpkg_layers(pckg_path):
 
 def list_gpkg_fields(gpkg_path, name, bar_warning=None):
     try:
-        layer = QgsVectorLayer(gpkg_path + '|layername=' + name, name, 'ogr')
+        layer = QgsVectorLayer(gpkg_path + "|layername=" + name, name, "ogr")
         fields = layer.fields()
-        columns=[]
+        columns = []
         for f in fields:
             columns.append(f.name())
         return columns
     except RuntimeError as e:
         if bar_warning:
-            bar_warning('Cannot read GeoPackage layer!')
+            bar_warning("Cannot read GeoPackage layer!")
         return []
 
 
 def search_gpkg(search_text, search_field, echo_search_column, display_fields, extra_expr_columns, layer, limit):
-    wildcarded_search_string = ''
+    wildcarded_search_string = ""
     for part in search_text.split():
-        wildcarded_search_string += '%' + part
-    wildcarded_search_string += '%'
+        wildcarded_search_string += "%" + part
+    wildcarded_search_string += "%"
     expr_str = "{0} ILIKE '{1}'".format(search_field, wildcarded_search_string)
     expr = QgsExpression(expr_str)
     req = QgsFeatureRequest(expr)

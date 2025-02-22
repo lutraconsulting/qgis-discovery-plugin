@@ -12,21 +12,17 @@
 
 import os
 
-from PyQt5.QtCore import QSettings, Qt, QUrl
-from PyQt5.QtGui import QDesktopServices, QColor
-from PyQt5.QtWidgets import QApplication, QDialogButtonBox, QMessageBox, QFileDialog, QDialog
 from PyQt5 import uic
-from . import dbutils
-from . import discoveryplugin
-from . import gpkg_utils
-from . import mssql_utils
-from . import oracle_utils
-
+from PyQt5.QtCore import QSettings, Qt, QUrl
+from PyQt5.QtGui import QColor, QDesktopServices
+from PyQt5.QtWidgets import QApplication, QDialog, QDialogButtonBox, QFileDialog, QMessageBox
 from qgis.core import QgsSettings
+
+from . import dbutils, discoveryplugin, gpkg_utils, mssql_utils, oracle_utils
 
 plugin_dir = os.path.dirname(__file__)
 
-uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, 'config_dialog.ui'))
+uiConfigDialog, qtBaseClass = uic.loadUiType(os.path.join(plugin_dir, "config_dialog.ui"))
 
 
 class ConfigDialog(qtBaseClass, uiConfigDialog):
@@ -136,7 +132,15 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.cboTable.setCurrentIndex(0)
         self.populate_columns()
 
-        for cbo in [self.cboSearchColumn, self.cboGeomColumn, self.cboDisplayColumn1, self.cboDisplayColumn2, self.cboDisplayColumn3, self.cboDisplayColumn4, self.cboDisplayColumn5]:
+        for cbo in [
+            self.cboSearchColumn,
+            self.cboGeomColumn,
+            self.cboDisplayColumn1,
+            self.cboDisplayColumn2,
+            self.cboDisplayColumn3,
+            self.cboDisplayColumn4,
+            self.cboDisplayColumn5,
+        ]:
             cbo.setCurrentIndex(0)
 
     def set_form_fields(self, key):
@@ -233,7 +237,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def connect_db(self):
         name = self.cboConnection.currentText()
-        if name == '':
+        if name == "":
             return
         try:
             data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
@@ -246,7 +250,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.lblMessage.setText("")
         except Exception as e:
             self.conn = None
-            self.lblMessage.setText("<font color=red>"+ str(e) +"</font>")
+            self.lblMessage.setText("<font color=red>" + str(e) + "</font>")
         self.populate_schemas()
 
     def populate_connections(self):
@@ -267,8 +271,9 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def populate_schemas(self):
         self.cboSchema.clear()
-        self.cboSchema.addItem('')
-        if self.conn is None: return
+        self.cboSchema.addItem("")
+        if self.conn is None:
+            return
 
         data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
         if data_type == "postgres":
@@ -284,46 +289,61 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
 
     def populate_tables(self):
         self.cboTable.clear()
-        self.cboTable.addItem('')
+        self.cboTable.addItem("")
         data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
         if data_type == "postgres":
-            if self.conn is None: return
+            if self.conn is None:
+                return
             tables = dbutils.list_tables(self.conn.cursor(), self.cboSchema.currentText())
         elif data_type == "mssql":
-            if self.conn is None: return
+            if self.conn is None:
+                return
             tables = mssql_utils.list_tables(self.conn)  # TODO: filter by schema
         elif data_type == "oracle":
-            if self.conn is None: return
+            if self.conn is None:
+                return
             tables = oracle_utils.list_tables(self.conn, self.cboSchema.currentText())
         elif data_type == "gpkg":
             tables = gpkg_utils.list_gpkg_layers(self.cboFile.currentText())
         else:
-            return   # current index == -1
+            return  # current index == -1
 
         for table in tables:
             self.cboTable.addItem(table)
 
     def populate_columns(self):
-        cbos = [self.cboSearchColumn, self.cboGeomColumn, self.cboDisplayColumn1, self.cboDisplayColumn2,
-                self.cboDisplayColumn3, self.cboDisplayColumn4, self.cboDisplayColumn5]
+        cbos = [
+            self.cboSearchColumn,
+            self.cboGeomColumn,
+            self.cboDisplayColumn1,
+            self.cboDisplayColumn2,
+            self.cboDisplayColumn3,
+            self.cboDisplayColumn4,
+            self.cboDisplayColumn5,
+        ]
         for cbo in cbos:
             cbo.clear()
             cbo.addItem("")
 
         data_type = self.cboDataSource.itemData(self.cboDataSource.currentIndex())
         if data_type == "postgres":
-            if self.conn is None: return
-            columns = dbutils.list_columns(self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText())
+            if self.conn is None:
+                return
+            columns = dbutils.list_columns(
+                self.conn.cursor(), self.cboSchema.currentText(), self.cboTable.currentText()
+            )
         elif data_type == "mssql":
-            if self.conn is None: return
+            if self.conn is None:
+                return
             columns = mssql_utils.list_columns(self.conn, self.cboSchema.currentText(), self.cboTable.currentText())
         elif data_type == "oracle":
-            if self.conn is None: return
+            if self.conn is None:
+                return
             columns = oracle_utils.list_columns(self.conn, self.cboSchema.currentText(), self.cboTable.currentText())
         elif data_type == "gpkg":
             columns = gpkg_utils.list_gpkg_fields(self.cboFile.currentText(), self.cboTable.currentText())
         else:
-            return   # current index == -1
+            return  # current index == -1
 
         for cbo in cbos:
             for column in columns:
@@ -341,8 +361,10 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             w.setVisible(not is_db)
 
     def validate_key(self, key, config_list):
-        if not key: return False
-        if self.key != key and key in config_list: return False
+        if not key:
+            return False
+        if self.key != key and key in config_list:
+            return False
 
         return True
 
@@ -406,11 +428,15 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.spinBarInfoTime.setEnabled(self.chkBarInfoTime.isChecked())
 
     def display_columns(self):
-        """ Make a string out of display columns, e.g. "column1,column2" or just "column1"
-        """
+        """Make a string out of display columns, e.g. "column1,column2" or just "column1" """
         lst = []
-        for cbo in [self.cboDisplayColumn1, self.cboDisplayColumn2, self.cboDisplayColumn3, self.cboDisplayColumn4,
-                    self.cboDisplayColumn5]:
+        for cbo in [
+            self.cboDisplayColumn1,
+            self.cboDisplayColumn2,
+            self.cboDisplayColumn3,
+            self.cboDisplayColumn4,
+            self.cboDisplayColumn5,
+        ]:
             txt = cbo.currentText()
             if len(txt) > 0:
                 lst.append(txt)
@@ -441,7 +467,8 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         self.key = txt
 
     def delete_config(self):
-        if self.configOptions.currentIndex() < 0: return
+        if self.configOptions.currentIndex() < 0:
+            return
 
         msgBox = QMessageBox()
         msgBox.setWindowTitle("Delete configuration")
@@ -462,7 +489,7 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
         config_list = settings.value("config_list")
         config_list.remove(item_text)
         settings.setValue("config_list", config_list)
-        if (self.configOptions.count()):
+        if self.configOptions.count():
             self.configOptions.setCurrentIndex(0)
         else:
             self.reset_form_fields()
@@ -470,21 +497,23 @@ class ConfigDialog(qtBaseClass, uiConfigDialog):
             self.key = ""
 
     def config_selection_changed(self):
-        if not self.configOptions.count(): return
-        if self.configOptions.currentIndex() < 0: return
+        if not self.configOptions.count():
+            return
+        if self.configOptions.currentIndex() < 0:
+            return
 
         self.key = self.configOptions.currentText()
         self.set_form_fields(self.key)
 
     def data_type_changed(self):
-        self.conn=None
+        self.conn = None
         self.populate_connections()
         self.enable_fields_for_data_type()
 
     def browse_file_db(self):
         dialog = QFileDialog(self)
-        dialog.setWindowTitle('Open GeoPackage database')
-        dialog.setNameFilters(['*.gpkg'])
+        dialog.setWindowTitle("Open GeoPackage database")
+        dialog.setNameFilters(["*.gpkg"])
         dialog.setFileMode(QFileDialog.ExistingFile)
         if dialog.exec_() == QDialog.Accepted:
             filename = dialog.selectedFiles()[0]

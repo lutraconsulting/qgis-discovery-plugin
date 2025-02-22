@@ -11,10 +11,9 @@
 # (at your option) any later version.
 
 
-from qgis.core import QgsMessageLog, QgsLocatorFilter, QgsLocatorResult
+from qgis.core import QgsLocatorFilter, QgsLocatorResult, QgsMessageLog
 
-from . import config_dialog
-from . import dbutils
+from . import config_dialog, dbutils
 
 
 class DiscoveryLocatorFilter(QgsLocatorFilter):
@@ -40,16 +39,16 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
             return
 
         query_text, query_dict = dbutils.get_search_sql(
-                                    text,
-                                    self.plugin.postgisgeomcolumn,
-                                    self.plugin.postgissearchcolumn,
-                                    self.plugin.echosearchcolumn,
-                                    self.plugin.postgisdisplaycolumn,
-                                    self.plugin.extra_expr_columns,
-                                    self.plugin.postgisschema,
-                                    self.plugin.postgistable,
-                                    self.plugin.escapespecchars,
-                                    self.plugin.limit_results,
+            text,
+            self.plugin.postgisgeomcolumn,
+            self.plugin.postgissearchcolumn,
+            self.plugin.echosearchcolumn,
+            self.plugin.postgisdisplaycolumn,
+            self.plugin.extra_expr_columns,
+            self.plugin.postgisschema,
+            self.plugin.postgistable,
+            self.plugin.escapespecchars,
+            self.plugin.limit_results,
         )
 
         conn = self.plugin.get_db()
@@ -67,7 +66,7 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
             geom, epsg, suggestion_text = row[0], row[1], row[2]
             extra_data = {}
             for idx, extra_col in enumerate(self.plugin.extra_expr_columns):
-                extra_data[extra_col] = row[3+idx]
+                extra_data[extra_col] = row[3 + idx]
 
             res = QgsLocatorResult(self, suggestion_text, (geom, epsg, extra_data))
             self.resultFetched.emit(res)
