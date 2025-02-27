@@ -11,10 +11,9 @@
 # (at your option) any later version.
 
 
-from qgis.core import QgsLocatorFilter, QgsLocatorResult
+from qgis.core import QgsLocatorFilter, QgsLocatorResult, QgsMessageLog
 
-from . import config_dialog
-from . import dbutils
+from . import config_dialog, dbutils
 
 
 class DiscoveryLocatorFilter(QgsLocatorFilter):
@@ -40,20 +39,26 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
             return
 
         query_text, query_dict = dbutils.get_search_sql(
-                                    text,
-                                    self.plugin.postgisgeomcolumn,
-                                    self.plugin.postgissearchcolumn,
-                                    self.plugin.echosearchcolumn,
-                                    self.plugin.postgisdisplaycolumn,
-                                    self.plugin.extra_expr_columns,
-                                    self.plugin.postgisschema,
-                                    self.plugin.postgistable,
-                                    self.plugin.escapespecchars)
+            text,
+            self.plugin.postgisgeomcolumn,
+            self.plugin.postgissearchcolumn,
+            self.plugin.echosearchcolumn,
+            self.plugin.postgisdisplaycolumn,
+            self.plugin.extra_expr_columns,
+            self.plugin.postgisschema,
+            self.plugin.postgistable,
+            self.plugin.escapespecchars,
+            self.plugin.limit_results,
+        )
 
-        cur = self.plugin.get_db()
-        cur.execute(query_text, query_dict)
+        conn = self.plugin.get_db()
+        if not conn:
+            QgsMessageLog.logMessage("The Locator Bar filter is currently only supported on PostGIS", "Discovery")
+            return
+        cursor = conn.cursor()
+        cursor.execute(query_text, query_dict)
 
-        for row in cur.fetchall():
+        for row in cursor.fetchall():
 
             if feedback.isCanceled():
                 return
@@ -61,9 +66,9 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
             geom, epsg, suggestion_text = row[0], row[1], row[2]
             extra_data = {}
             for idx, extra_col in enumerate(self.plugin.extra_expr_columns):
-                extra_data[extra_col] = row[3+idx]
+                extra_data[extra_col] = row[3 + idx]
 
-            res = QgsLocatorResult(self, suggestion_text, (geom, epsg, extra_data))
+            res = QgsLocatorResult(self, suggestion_text, (geom, epsg, suggestion_text, extra_data))
             self.resultFetched.emit(res)
 
     def triggerResult(self, result):

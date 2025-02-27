@@ -11,16 +11,13 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-from PyQt5.QtCore import QModelIndex, QSettings, QTimer, QVariant, Qt
-from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtWidgets import QApplication, QAction, QComboBox, QCompleter, QMessageBox
+import os.path
+import time
 
 import psycopg2
-import time
-import os.path
-
-from Discovery import gpkg_utils, mssql_utils
-
+from PyQt5.QtCore import QCoreApplication, QModelIndex, QSettings, Qt, QTimer, QTranslator, QVariant
+from PyQt5.QtGui import QColor, QIcon
+from PyQt5.QtWidgets import QAction, QApplication, QComboBox, QCompleter, QMessageBox
 from qgis.core import (
     Qgis,
     QgsCoordinateReferenceSystem,
@@ -32,21 +29,21 @@ from qgis.core import (
     QgsFields,
     QgsGeometry,
     QgsRectangle,
+    QgsSettings,
     QgsVectorLayer,
     QgsWkbTypes,
-    QgsSettings
 )
-from qgis.gui import QgsVertexMarker, QgsFilterLineEdit, QgsRubberBand
+from qgis.gui import QgsFilterLineEdit, QgsRubberBand, QgsVertexMarker
 from qgis.utils import iface
 
-from . import config_dialog
-from . import dbutils
-from . import locator_filter
+from Discovery import gpkg_utils, mssql_utils, oracle_utils
+
+from . import config_dialog, dbutils, locator_filter
 
 
 def eval_expression(expr_text, extra_data, default=None):
-    """ Helper method to evaluate an expression. E.g.
-         eval_expression("1+a", {"a": 2}) will return 3
+    """Helper method to evaluate an expression. E.g.
+    eval_expression("1+a", {"a": 2}) will return 3
     """
     if expr_text is None or len(expr_text) == 0:
         return default
@@ -71,8 +68,7 @@ def eval_expression(expr_text, extra_data, default=None):
 
 
 def bbox_str_to_rectangle(bbox_str):
-    """ Helper method to convert "xmin,ymin,xmax,ymax" to QgsRectangle - or return None on error
-    """
+    """Helper method to convert "xmin,ymin,xmax,ymax" to QgsRectangle - or return None on error"""
     if bbox_str is None or len(bbox_str) == 0:
         return None
 
@@ -113,6 +109,14 @@ class DiscoveryPlugin:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
 
+        # Localize
+        locale = QSettings().value("locale/userLocale")[0:2]
+        localePath = os.path.join(self.plugin_dir, "i18n", "discovery_{}.qm".format(locale))
+        if os.path.exists(localePath):
+            self.translator = QTranslator()
+            self.translator.load(localePath)
+            QCoreApplication.installTranslator(self.translator)
+
         # Variables to facilitate delayed queries and database connection management
         self.db_timer = QTimer()
         self.line_edit_timer = QTimer()
@@ -122,8 +126,8 @@ class DiscoveryPlugin:
         self.last_query_time = time.time()
         self.db_conn = None
         self.search_delay = 0.5  # s
-        self.query_sql = ''
-        self.query_text = ''
+        self.query_sql = ""
+        self.query_text = ""
         self.query_dict = {}
         self.db_idle_time = 60.0  # s
         self.display_time = 5000  # ms
@@ -139,7 +143,7 @@ class DiscoveryPlugin:
         self.marker = QgsVertexMarker(iface.mapCanvas())
         self.marker.setIconSize(15)
         self.marker.setPenWidth(2)
-        self.marker.setColor(QColor(226, 27, 28))  #51,160,44))
+        self.marker.setColor(QColor(226, 27, 28))  # 51,160,44))
         self.marker.setZValue(11)
         self.marker.setVisible(False)
         self.marker2 = QgsVertexMarker(iface.mapCanvas())
@@ -159,13 +163,13 @@ class DiscoveryPlugin:
     def initGui(self):
 
         # Create a new toolbar
-        self.tool_bar = self.iface.addToolBar('Discovery')
-        self.tool_bar.setObjectName('Discovery_Plugin')
+        self.tool_bar = self.iface.addToolBar("Discovery")
+        self.tool_bar.setObjectName("Discovery_Plugin")
 
         # Create action that will start plugin configuration
         self.action_config = QAction(
-             QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
-             u"Configure Discovery", self.tool_bar)
+            QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")), "Configure Discovery", self.tool_bar
+        )
         self.action_config.triggered.connect(self.show_config_dialog)
         self.tool_bar.addAction(self.action_config)
 
@@ -204,7 +208,7 @@ class DiscoveryPlugin:
 
         # Add search edit box
         self.search_line_edit = QgsFilterLineEdit()
-        self.search_line_edit.setPlaceholderText('Search for...')
+        self.search_line_edit.setPlaceholderText("Search for...")
         self.search_line_edit.setMaximumWidth(768)
         self.tool_bar.addWidget(self.search_line_edit)
 
@@ -286,7 +290,7 @@ class DiscoveryPlugin:
                 self.postgisschema,
                 self.postgistable,
                 self.escapespecchars,
-                self.limit_results
+                self.limit_results,
             )
             self.schedule_search(query_text, query_dict)
 
@@ -298,7 +302,7 @@ class DiscoveryPlugin:
                 self.postgisdisplaycolumn.split(","),
                 self.extra_expr_columns,
                 self.layer,
-                self.limit_results
+                self.limit_results,
             )
             self.schedule_search(query_text, None)
 
@@ -312,7 +316,21 @@ class DiscoveryPlugin:
                 self.extra_expr_columns,
                 self.postgisschema,
                 self.postgistable,
-                self.limit_results
+                self.limit_results,
+            )
+            self.schedule_search(query_text, None)
+
+        elif self.data_type == "oracle":
+            query_text = oracle_utils.get_search_sql(
+                new_search_text,
+                self.postgisgeomcolumn,
+                self.postgissearchcolumn,
+                self.echosearchcolumn,
+                self.postgisdisplaycolumn,
+                self.extra_expr_columns,
+                self.postgisschema,
+                self.postgistable,
+                self.limit_results,
             )
             self.schedule_search(query_text, None)
 
@@ -329,8 +347,9 @@ class DiscoveryPlugin:
 
     def perform_search(self):
         db = self.get_db()
-        if db is None:
+        if db is None and self.data_type != "gpkg":
             return
+
         self.search_results = []
         suggestions = []
         if self.data_type == "postgres":
@@ -345,6 +364,8 @@ class DiscoveryPlugin:
             result_set = cur.fetchall()
         elif self.data_type == "mssql":
             result_set = mssql_utils.execute(db, self.query_sql)
+        elif self.data_type == "oracle":
+            result_set = oracle_utils.execute(db, self.query_sql)
         elif self.data_type == "gpkg":
             result_set = gpkg_utils.search_gpkg(*self.query_sql)
 
@@ -352,7 +373,7 @@ class DiscoveryPlugin:
             geom, epsg, suggestion_text = row[0], row[1], row[2]
             extra_data = {}
             for idx, extra_col in enumerate(self.extra_expr_columns):
-                extra_data[extra_col] = row[3+idx]
+                extra_data[extra_col] = row[3 + idx]
             self.search_results.append((geom, epsg, suggestion_text, extra_data))
             suggestions.append(suggestion_text)
         model = self.completer.model()
@@ -378,57 +399,63 @@ class DiscoveryPlugin:
     def select_result(self, result_data):
         geometry_text, src_epsg, suggestion_text, extra_data = result_data
         location_geom = QgsGeometry.fromWkt(geometry_text)
-        canvas = self.iface.mapCanvas()
-        dst_srid = canvas.mapSettings().destinationCrs().authid()
-        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem.fromEpsgId(src_epsg),
-                                           QgsCoordinateReferenceSystem(dst_srid),
-                                           canvas.mapSettings().transformContext())
-        # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
-        location_geom.transform(transform)
-        location_centroid = location_geom.centroid().asPoint()
-
-        # show temporary marker
-        if location_geom.type() == QgsWkbTypes.PointGeometry:
-            self.show_marker(location_centroid)
-        elif location_geom.type() == QgsWkbTypes.LineGeometry or \
-            location_geom.type() == QgsWkbTypes.PolygonGeometry:
-            self.show_line_rubber_band(location_geom)
-        else:
-            #unsupported geometry type
+        location_geom_type = location_geom.type()
+        if location_geom_type in {QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry}:
+            # Unknown geometry or no geometry at all
             pass
+        else:
+            canvas = self.iface.mapCanvas()
+            dst_srid = canvas.mapSettings().destinationCrs().authid()
+            transform = QgsCoordinateTransform(
+                QgsCoordinateReferenceSystem.fromEpsgId(int(src_epsg)),
+                QgsCoordinateReferenceSystem(dst_srid),
+                canvas.mapSettings().transformContext(),
+            )
+            # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
+            location_geom.transform(transform)
+            location_centroid = location_geom.centroid().asPoint()
 
-        # Adjust map canvas extent
-        zoom_method = 'Move and Zoom'
-        if zoom_method == 'Move and Zoom':
-            # with higher priority try to use exact bounding box to zoom to features (if provided)
-            bbox_str = eval_expression(self.bbox_expr, extra_data)
-            rect = bbox_str_to_rectangle(bbox_str)
-            if rect is not None:
-                # transform the rectangle in case of OTF projection
-                rect = transform.transformBoundingBox(rect)
+            # show temporary marker
+            if location_geom_type == QgsWkbTypes.PointGeometry:
+                self.show_marker(location_centroid)
+            elif location_geom_type == QgsWkbTypes.LineGeometry or location_geom_type == QgsWkbTypes.PolygonGeometry:
+                self.show_line_rubber_band(location_geom)
             else:
-                # bbox is not available - so let's just use defined scale
-                # compute target scale. If the result is 2000 this means the target scale is 1:2000
-                rect = location_geom.boundingBox()
-                if rect.isEmpty():
-                    scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.)
-                    rect = canvas.mapSettings().extent()
-                    rect.scale(scale_denom / canvas.scale(), location_centroid)
+                # unsupported geometry type
+                pass
+
+            # Adjust map canvas extent
+            zoom_method = "Move and Zoom"
+            if zoom_method == "Move and Zoom":
+                # with higher priority try to use exact bounding box to zoom to features (if provided)
+                bbox_str = eval_expression(self.bbox_expr, extra_data)
+                rect = bbox_str_to_rectangle(bbox_str)
+                if rect is not None:
+                    # transform the rectangle in case of OTF projection
+                    rect = transform.transformBoundingBox(rect)
                 else:
-                    # enlarge geom bbox to have some margin
-                    rect.scale(1.2)
-            canvas.setExtent(rect)
-        elif zoom_method == 'Move':
-            current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
-            dx = location_centroid.x() - location_centroid.x()
-            dy = location_centroid.y() - location_centroid.y()
-            current_extent.translate(dx, dy)
-            canvas.setExtent(current_extent.boundingBox())
-        canvas.refresh()
+                    # bbox is not available - so let's just use defined scale
+                    # compute target scale. If the result is 2000 this means the target scale is 1:2000
+                    rect = location_geom.boundingBox()
+                    if rect.isEmpty():
+                        scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.0)
+                        rect = canvas.mapSettings().extent()
+                        rect.scale(scale_denom / canvas.scale(), location_centroid)
+                    else:
+                        # enlarge geom bbox to have some margin
+                        rect.scale(1.2)
+                canvas.setExtent(rect)
+            elif zoom_method == "Move":
+                current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
+                dx = location_centroid.x() - location_centroid.x()
+                dy = location_centroid.y() - location_centroid.y()
+                current_extent.translate(dx, dy)
+                canvas.setExtent(current_extent.boundingBox())
+            canvas.refresh()
         self.line_edit_timer.start(0)
         if self.info_to_clipboard:
             QApplication.clipboard().setText(suggestion_text)
-            suggestion_text += ' (copied to clipboard)'
+            suggestion_text += " (copied to clipboard)"
         self.show_bar_info(suggestion_text)
 
     def on_result_highlighted(self, result_idx):
@@ -452,6 +479,8 @@ class DiscoveryPlugin:
                     return
             elif self.data_type == "mssql":
                 self.db_conn = mssql_utils.get_mssql_conn(self.conn_info)
+            elif self.data_type == "oracle":
+                self.db_conn = oracle_utils.get_oracle_conn(self.conn_info)
         QApplication.restoreOverrideCursor()
         return self.db_conn
 
@@ -484,7 +513,7 @@ class DiscoveryPlugin:
         if settings.value("bar_info_time_enabled", True, type=bool):
             self.bar_info_time = settings.value("bar_info_time", 30, type=int)
         else:
-             self.bar_info_time = 0
+            self.bar_info_time = 0
         self.limit_results = settings.value(key + "limit_results", 1000, type=int)
         self.info_to_clipboard = settings.value("info_to_clipboard", True, type=bool)
 
@@ -505,35 +534,65 @@ class DiscoveryPlugin:
             self.hide_rubber_band()
             self.is_displayed = False
 
-        self.make_enabled(False)   # assume the config is invalid first
+        self.make_enabled(False)  # assume the config is invalid first
 
         self.db_conn = None
         if self.data_type == "postgres":
             self.conn_info = dbutils.get_postgres_conn_info(connection)
             self.layer = None
 
-            if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
-                    len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
+            if (
+                len(connection) == 0
+                or len(self.postgisschema) == 0
+                or len(self.postgistable) == 0
+                or len(self.postgissearchcolumn) == 0
+                or len(self.postgisgeomcolumn) == 0
+            ):
                 return
 
             if len(self.conn_info) == 0:
-                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
-                                               level=Qgis.Critical)
+                iface.messageBar().pushMessage(
+                    "Discovery", "The database connection '%s' does not exist!" % connection, level=Qgis.Critical
+                )
                 return
-        if self.data_type == "mssql":
+        elif self.data_type == "mssql":
             self.conn_info = mssql_utils.get_mssql_conn_info(connection)
             self.layer = None
 
-            if len(connection) == 0 or len(self.postgisschema) == 0 or len(self.postgistable) == 0 or \
-                    len(self.postgissearchcolumn) == 0 or len(self.postgisgeomcolumn) == 0:
+            if (
+                len(connection) == 0
+                or len(self.postgisschema) == 0
+                or len(self.postgistable) == 0
+                or len(self.postgissearchcolumn) == 0
+                or len(self.postgisgeomcolumn) == 0
+            ):
                 return
 
             if len(self.conn_info) == 0:
-                iface.messageBar().pushMessage("Discovery", "The database connection '%s' does not exist!" % connection,
-                                               level=Qgis.Critical)
+                iface.messageBar().pushMessage(
+                    "Discovery", "The database connection '%s' does not exist!" % connection, level=Qgis.Critical
+                )
+                return
+        elif self.data_type == "oracle":
+            self.conn_info = oracle_utils.get_oracle_conn_info(connection)
+            self.layer = None
+
+            if (
+                len(connection) == 0
+                or len(self.postgisschema) == 0
+                or len(self.postgistable) == 0
+                or len(self.postgissearchcolumn) == 0
+                or len(self.postgisgeomcolumn) == 0
+            ):
+                return
+
+            if len(self.conn_info) == 0:
+                iface.messageBar().pushMessage(
+                    "Discovery", "The database connection '%s' does not exist!" % connection, level=Qgis.Critical
+                )
                 return
         elif self.data_type == "gpkg":
-            self.layer = QgsVectorLayer(self.file + '|layername=' + self.postgistable, self.postgistable, 'ogr')
+            self.layer = QgsVectorLayer(self.file + "|layername=" + self.postgistable, self.postgistable, "ogr")
             self.conn_info = None
         self.extra_expr_columns = []
         self.scale_expr = None
@@ -545,8 +604,9 @@ class DiscoveryPlugin:
         if len(scale_expr) != 0:
             expr = QgsExpression(scale_expr)
             if expr.hasParserError():
-                iface.messageBar().pushMessage("Discovery", "Invalid scale expression: " + expr.parserErrorString(),
-                                               level=Qgis.Warning)
+                iface.messageBar().pushMessage(
+                    "Discovery", "Invalid scale expression: " + expr.parserErrorString(), level=Qgis.Warning
+                )
             else:
                 self.scale_expr = scale_expr
                 self.extra_expr_columns += expr.referencedColumns()
@@ -555,15 +615,16 @@ class DiscoveryPlugin:
         if len(bbox_expr) != 0:
             expr = QgsExpression(bbox_expr)
             if expr.hasParserError():
-                iface.messageBar().pushMessage("Discovery", "Invalid bbox expression: " + expr.parserErrorString(),
-                                               level=Qgis.Warning)
+                iface.messageBar().pushMessage(
+                    "Discovery", "Invalid bbox expression: " + expr.parserErrorString(), level=Qgis.Warning
+                )
             else:
                 self.bbox_expr = bbox_expr
                 self.extra_expr_columns += expr.referencedColumns()
 
     def show_config_dialog(self):
         dlg = config_dialog.ConfigDialog()
-        if (self.config_combo.currentIndex() >= 0):
+        if self.config_combo.currentIndex() >= 0:
             dlg.configOptions.setCurrentIndex(self.config_combo.currentIndex())
 
         if dlg.exec_():
@@ -591,7 +652,7 @@ class DiscoveryPlugin:
 
     def hide_marker(self):
         opacity = self.marker.opacity()
-        if opacity > 0.:
+        if opacity > 0.0:
             # produce a fade out effect
             opacity -= 0.1
             self.marker.setOpacity(opacity)
@@ -615,7 +676,7 @@ class DiscoveryPlugin:
 
     def hide_rubber_band(self):
         opacity = self.rubber_band.opacity()
-        if opacity > 0.:
+        if opacity > 0.0:
             # produce a fade out effect
             opacity -= 0.1
             self.rubber_band.setOpacity(opacity)

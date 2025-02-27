@@ -13,4 +13,5 @@
 
 def classFactory(iface):
     from .discoveryplugin import DiscoveryPlugin
+
     return DiscoveryPlugin(iface)
