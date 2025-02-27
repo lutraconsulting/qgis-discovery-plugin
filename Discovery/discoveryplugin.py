@@ -399,54 +399,59 @@ class DiscoveryPlugin:
     def select_result(self, result_data):
         geometry_text, src_epsg, suggestion_text, extra_data = result_data
         location_geom = QgsGeometry.fromWkt(geometry_text)
-        canvas = self.iface.mapCanvas()
-        dst_srid = canvas.mapSettings().destinationCrs().authid()
-        transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem.fromEpsgId(int(src_epsg)),
-            QgsCoordinateReferenceSystem(dst_srid),
-            canvas.mapSettings().transformContext(),
-        )
-        # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
-        location_geom.transform(transform)
-        location_centroid = location_geom.centroid().asPoint()
-
-        # show temporary marker
-        if location_geom.type() == QgsWkbTypes.PointGeometry:
-            self.show_marker(location_centroid)
-        elif location_geom.type() == QgsWkbTypes.LineGeometry or location_geom.type() == QgsWkbTypes.PolygonGeometry:
-            self.show_line_rubber_band(location_geom)
-        else:
-            # unsupported geometry type
+        location_geom_type = location_geom.type()
+        if location_geom_type in {QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry}:
+            # Unknown geometry or no geometry at all
             pass
+        else:
+            canvas = self.iface.mapCanvas()
+            dst_srid = canvas.mapSettings().destinationCrs().authid()
+            transform = QgsCoordinateTransform(
+                QgsCoordinateReferenceSystem.fromEpsgId(int(src_epsg)),
+                QgsCoordinateReferenceSystem(dst_srid),
+                canvas.mapSettings().transformContext(),
+            )
+            # Ensure the geometry from the DB is reprojected to the same SRID as the map canvas
+            location_geom.transform(transform)
+            location_centroid = location_geom.centroid().asPoint()
 
-        # Adjust map canvas extent
-        zoom_method = "Move and Zoom"
-        if zoom_method == "Move and Zoom":
-            # with higher priority try to use exact bounding box to zoom to features (if provided)
-            bbox_str = eval_expression(self.bbox_expr, extra_data)
-            rect = bbox_str_to_rectangle(bbox_str)
-            if rect is not None:
-                # transform the rectangle in case of OTF projection
-                rect = transform.transformBoundingBox(rect)
+            # show temporary marker
+            if location_geom_type == QgsWkbTypes.PointGeometry:
+                self.show_marker(location_centroid)
+            elif location_geom_type == QgsWkbTypes.LineGeometry or location_geom_type == QgsWkbTypes.PolygonGeometry:
+                self.show_line_rubber_band(location_geom)
             else:
-                # bbox is not available - so let's just use defined scale
-                # compute target scale. If the result is 2000 this means the target scale is 1:2000
-                rect = location_geom.boundingBox()
-                if rect.isEmpty():
-                    scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.0)
-                    rect = canvas.mapSettings().extent()
-                    rect.scale(scale_denom / canvas.scale(), location_centroid)
+                # unsupported geometry type
+                pass
+
+            # Adjust map canvas extent
+            zoom_method = "Move and Zoom"
+            if zoom_method == "Move and Zoom":
+                # with higher priority try to use exact bounding box to zoom to features (if provided)
+                bbox_str = eval_expression(self.bbox_expr, extra_data)
+                rect = bbox_str_to_rectangle(bbox_str)
+                if rect is not None:
+                    # transform the rectangle in case of OTF projection
+                    rect = transform.transformBoundingBox(rect)
                 else:
-                    # enlarge geom bbox to have some margin
-                    rect.scale(1.2)
-            canvas.setExtent(rect)
-        elif zoom_method == "Move":
-            current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
-            dx = location_centroid.x() - location_centroid.x()
-            dy = location_centroid.y() - location_centroid.y()
-            current_extent.translate(dx, dy)
-            canvas.setExtent(current_extent.boundingBox())
-        canvas.refresh()
+                    # bbox is not available - so let's just use defined scale
+                    # compute target scale. If the result is 2000 this means the target scale is 1:2000
+                    rect = location_geom.boundingBox()
+                    if rect.isEmpty():
+                        scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.0)
+                        rect = canvas.mapSettings().extent()
+                        rect.scale(scale_denom / canvas.scale(), location_centroid)
+                    else:
+                        # enlarge geom bbox to have some margin
+                        rect.scale(1.2)
+                canvas.setExtent(rect)
+            elif zoom_method == "Move":
+                current_extent = QgsGeometry.fromRect(self.iface.mapCanvas().extent())
+                dx = location_centroid.x() - location_centroid.x()
+                dy = location_centroid.y() - location_centroid.y()
+                current_extent.translate(dx, dy)
+                canvas.setExtent(current_extent.boundingBox())
+            canvas.refresh()
         self.line_edit_timer.start(0)
         if self.info_to_clipboard:
             QApplication.clipboard().setText(suggestion_text)

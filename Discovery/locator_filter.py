@@ -68,7 +68,7 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
             for idx, extra_col in enumerate(self.plugin.extra_expr_columns):
                 extra_data[extra_col] = row[3 + idx]
 
-            res = QgsLocatorResult(self, suggestion_text, (geom, epsg, extra_data))
+            res = QgsLocatorResult(self, suggestion_text, (geom, epsg, suggestion_text, extra_data))
             self.resultFetched.emit(res)
 
     def triggerResult(self, result):
