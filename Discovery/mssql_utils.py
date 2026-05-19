@@ -1,6 +1,6 @@
 import sys
 
-from PyQt5.QtSql import QSqlDatabase, QSqlQuery
+from qgis.PyQt.QtSql import QSqlDatabase, QSqlQuery
 from qgis.core import QgsMessageLog, QgsSettings
 
 from . import dbutils
@@ -77,7 +77,9 @@ def list_schemas(db):
 
 
 def list_tables(db):
-    query_text = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+    query_text = (
+        "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+    )
     query = QSqlQuery(db)
     query.exec(query_text)
     names = []
@@ -175,7 +177,9 @@ def get_search_sql(
 def execute(db, query_text):
     query = QSqlQuery(db)
     if not query.exec(query_text):
-        QgsMessageLog.logMessage(query.lastError().text() + "\n\nQuery:\n" + query_text, "Discovery")
+        QgsMessageLog.logMessage(
+            query.lastError().text() + "\n\nQuery:\n" + query_text, "Discovery"
+        )
         return []
 
     record = query.record()

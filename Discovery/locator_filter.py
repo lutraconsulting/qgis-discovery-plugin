@@ -79,6 +79,6 @@ class DiscoveryLocatorFilter(QgsLocatorFilter):
 
     def openConfigWidget(self, parent):
         dlg = config_dialog.ConfigDialog(parent)
-        if dlg.exec_():
+        if dlg.exec():
             dlg.write_config()
             self.plugin.read_config()

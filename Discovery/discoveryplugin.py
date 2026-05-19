@@ -15,9 +15,23 @@ import os.path
 import time
 
 import psycopg2
-from PyQt5.QtCore import QCoreApplication, QModelIndex, QSettings, Qt, QTimer, QTranslator, QVariant
-from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtWidgets import QAction, QApplication, QComboBox, QCompleter, QMessageBox
+from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QMetaType,
+    QModelIndex,
+    QSettings,
+    Qt,
+    QTimer,
+    QTranslator,
+)
+from qgis.PyQt.QtGui import QColor, QIcon
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QComboBox,
+    QCompleter,
+    QMessageBox,
+)
 from qgis.core import (
     Qgis,
     QgsCoordinateReferenceSystem,
@@ -31,7 +45,6 @@ from qgis.core import (
     QgsRectangle,
     QgsSettings,
     QgsVectorLayer,
-    QgsWkbTypes,
 )
 from qgis.gui import QgsFilterLineEdit, QgsRubberBand, QgsVertexMarker
 from qgis.utils import iface
@@ -51,11 +64,11 @@ def eval_expression(expr_text, extra_data, default=None):
     flds = QgsFields()
     for extra_col, extra_value in extra_data.items():
         if isinstance(extra_value, int):
-            t = QVariant.Int
+            t = QMetaType.Type.Int
         elif isinstance(extra_value, float):
-            t = QVariant.Double
+            t = QMetaType.Type.Double
         else:
-            t = QVariant.String
+            t = QMetaType.Type.QString
         flds.append(QgsField(extra_col, t))
     f = QgsFeature(flds)
     for extra_col, extra_value in extra_data.items():
@@ -111,7 +124,9 @@ class DiscoveryPlugin:
 
         # Localize
         locale = QSettings().value("locale/userLocale")[0:2]
-        localePath = os.path.join(self.plugin_dir, "i18n", "discovery_{}.qm".format(locale))
+        localePath = os.path.join(
+            self.plugin_dir, "i18n", "discovery_{}.qm".format(locale)
+        )
         if os.path.exists(localePath):
             self.translator = QTranslator()
             self.translator.load(localePath)
@@ -154,7 +169,7 @@ class DiscoveryPlugin:
         self.marker2.setVisible(False)
         self.is_displayed = False
 
-        self.rubber_band = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self.rubber_band = QgsRubberBand(iface.mapCanvas(), Qgis.GeometryType.Polygon)
         self.rubber_band.setVisible(False)
         self.rubber_band.setWidth(3)
         self.rubber_band.setStrokeColor(QColor(226, 27, 28))
@@ -168,7 +183,9 @@ class DiscoveryPlugin:
 
         # Create action that will start plugin configuration
         self.action_config = QAction(
-            QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")), "Configure Discovery", self.tool_bar
+            QIcon(os.path.join(self.plugin_dir, "discovery_logo.png")),
+            "Configure Discovery",
+            self.tool_bar,
         )
         self.action_config.triggered.connect(self.show_config_dialog)
         self.tool_bar.addAction(self.action_config)
@@ -196,9 +213,15 @@ class DiscoveryPlugin:
             settings.setValue(key + "schema", settings.value("schema"))
             settings.setValue(key + "table", settings.value("table"))
             settings.setValue(key + "search_column", settings.value("search_column"))
-            settings.setValue(key + "escape_spec_chars", settings.value("escape_spec_chars"))
-            settings.setValue(key + "echo_search_column", settings.value("echo_search_column"))
-            settings.setValue(key + "display_columns", settings.value("display_columns"))
+            settings.setValue(
+                key + "escape_spec_chars", settings.value("escape_spec_chars")
+            )
+            settings.setValue(
+                key + "echo_search_column", settings.value("echo_search_column")
+            )
+            settings.setValue(
+                key + "display_columns", settings.value("display_columns")
+            )
             settings.setValue(key + "geom_column", settings.value("geom_column"))
             settings.setValue(key + "scale_expr", settings.value("scale_expr"))
             settings.setValue(key + "bbox_expr", settings.value("bbox_expr"))
@@ -216,10 +239,14 @@ class DiscoveryPlugin:
 
         # Set up the completer
         self.completer = QCompleter([])  # Initialise with en empty list
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setMaxVisibleItems(1000)
-        self.completer.setModelSorting(QCompleter.UnsortedModel)  # Sorting done in PostGIS
-        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # Show all fetched possibilities
+        self.completer.setModelSorting(
+            QCompleter.ModelSorting.UnsortedModel
+        )  # Sorting done in PostGIS
+        self.completer.setCompletionMode(
+            QCompleter.CompletionMode.UnfilteredPopupCompletion
+        )  # Show all fetched possibilities
         self.completer.activated[QModelIndex].connect(self.on_result_selected)
         self.completer.highlighted[QModelIndex].connect(self.on_result_highlighted)
         self.search_line_edit.setCompleter(self.completer)
@@ -390,7 +417,9 @@ class DiscoveryPlugin:
         """Optional show info bar message with selected result information"""
         self.iface.messageBar().clearWidgets()
         if self.bar_info_time:
-            self.iface.messageBar().pushMessage("Discovery", info_text, level=Qgis.Info, duration=self.bar_info_time)
+            self.iface.messageBar().pushMessage(
+                "Discovery", info_text, level=Qgis.MessageLevel.Info, duration=self.bar_info_time
+            )
 
     def on_result_selected(self, result_index):
         # What to do when the user makes a selection
@@ -400,7 +429,7 @@ class DiscoveryPlugin:
         geometry_text, src_epsg, suggestion_text, extra_data = result_data
         location_geom = QgsGeometry.fromWkt(geometry_text)
         location_geom_type = location_geom.type()
-        if location_geom_type in {QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry}:
+        if location_geom_type in {Qgis.GeometryType.Unknown, Qgis.GeometryType.Null}:
             # Unknown geometry or no geometry at all
             pass
         else:
@@ -416,9 +445,12 @@ class DiscoveryPlugin:
             location_centroid = location_geom.centroid().asPoint()
 
             # show temporary marker
-            if location_geom_type == QgsWkbTypes.PointGeometry:
+            if location_geom_type == Qgis.GeometryType.Point:
                 self.show_marker(location_centroid)
-            elif location_geom_type == QgsWkbTypes.LineGeometry or location_geom_type == QgsWkbTypes.PolygonGeometry:
+            elif (
+                location_geom_type == Qgis.GeometryType.Line
+                or location_geom_type == Qgis.GeometryType.Polygon
+            ):
                 self.show_line_rubber_band(location_geom)
             else:
                 # unsupported geometry type
@@ -438,7 +470,9 @@ class DiscoveryPlugin:
                     # compute target scale. If the result is 2000 this means the target scale is 1:2000
                     rect = location_geom.boundingBox()
                     if rect.isEmpty():
-                        scale_denom = eval_expression(self.scale_expr, extra_data, default=2000.0)
+                        scale_denom = eval_expression(
+                            self.scale_expr, extra_data, default=2000.0
+                        )
                         rect = canvas.mapSettings().extent()
                         rect.scale(scale_denom / canvas.scale(), location_centroid)
                     else:
@@ -466,7 +500,7 @@ class DiscoveryPlugin:
 
     def get_db(self):
         # Create a new connection if required
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         if self.db_conn is None:
             if self.data_type == "postgres":
                 try:
@@ -502,9 +536,15 @@ class DiscoveryPlugin:
         self.postgisschema = settings.value(key + "schema", "", type=str)
         self.postgistable = settings.value(key + "table", "", type=str)
         self.postgissearchcolumn = settings.value(key + "search_column", "", type=str)
-        self.escapespecchars = settings.value(key + "escape_spec_chars", False, type=bool)
-        self.echosearchcolumn = settings.value(key + "echo_search_column", True, type=bool)
-        self.postgisdisplaycolumn = settings.value(key + "display_columns", "", type=str)
+        self.escapespecchars = settings.value(
+            key + "escape_spec_chars", False, type=bool
+        )
+        self.echosearchcolumn = settings.value(
+            key + "echo_search_column", True, type=bool
+        )
+        self.postgisdisplaycolumn = settings.value(
+            key + "display_columns", "", type=str
+        )
         self.postgisgeomcolumn = settings.value(key + "geom_column", "", type=str)
         if settings.value("marker_time_enabled", True, type=bool):
             self.display_time = settings.value("marker_time", 5000, type=int)
@@ -552,7 +592,9 @@ class DiscoveryPlugin:
 
             if len(self.conn_info) == 0:
                 iface.messageBar().pushMessage(
-                    "Discovery", "The database connection '%s' does not exist!" % connection, level=Qgis.Critical
+                    "Discovery",
+                    "The database connection '%s' does not exist!" % connection,
+                    level=Qgis.MessageLevel.Critical,
                 )
                 return
         elif self.data_type == "mssql":
@@ -570,7 +612,9 @@ class DiscoveryPlugin:
 
             if len(self.conn_info) == 0:
                 iface.messageBar().pushMessage(
-                    "Discovery", "The database connection '%s' does not exist!" % connection, level=Qgis.Critical
+                    "Discovery",
+                    "The database connection '%s' does not exist!" % connection,
+                    level=Qgis.MessageLevel.Critical,
                 )
                 return
         elif self.data_type == "oracle":
@@ -588,11 +632,15 @@ class DiscoveryPlugin:
 
             if len(self.conn_info) == 0:
                 iface.messageBar().pushMessage(
-                    "Discovery", "The database connection '%s' does not exist!" % connection, level=Qgis.Critical
+                    "Discovery",
+                    "The database connection '%s' does not exist!" % connection,
+                    level=Qgis.MessageLevel.Critical,
                 )
                 return
         elif self.data_type == "gpkg":
-            self.layer = QgsVectorLayer(self.file + "|layername=" + self.postgistable, self.postgistable, "ogr")
+            self.layer = QgsVectorLayer(
+                self.file + "|layername=" + self.postgistable, self.postgistable, "ogr"
+            )
             self.conn_info = None
         self.extra_expr_columns = []
         self.scale_expr = None
@@ -605,7 +653,9 @@ class DiscoveryPlugin:
             expr = QgsExpression(scale_expr)
             if expr.hasParserError():
                 iface.messageBar().pushMessage(
-                    "Discovery", "Invalid scale expression: " + expr.parserErrorString(), level=Qgis.Warning
+                    "Discovery",
+                    "Invalid scale expression: " + expr.parserErrorString(),
+                    level=Qgis.MessageLevel.Warning,
                 )
             else:
                 self.scale_expr = scale_expr
@@ -616,7 +666,9 @@ class DiscoveryPlugin:
             expr = QgsExpression(bbox_expr)
             if expr.hasParserError():
                 iface.messageBar().pushMessage(
-                    "Discovery", "Invalid bbox expression: " + expr.parserErrorString(), level=Qgis.Warning
+                    "Discovery",
+                    "Invalid bbox expression: " + expr.parserErrorString(),
+                    level=Qgis.MessageLevel.Warning,
                 )
             else:
                 self.bbox_expr = bbox_expr
@@ -627,10 +679,12 @@ class DiscoveryPlugin:
         if self.config_combo.currentIndex() >= 0:
             dlg.configOptions.setCurrentIndex(self.config_combo.currentIndex())
 
-        if dlg.exec_():
+        if dlg.exec():
             dlg.write_config()
             self.config_combo.clear()
-            for key in [dlg.configOptions.itemText(i) for i in range(dlg.configOptions.count())]:
+            for key in [
+                dlg.configOptions.itemText(i) for i in range(dlg.configOptions.count())
+            ]:
                 self.config_combo.addItem(key)
 
             self.config_combo.setCurrentIndex(dlg.configOptions.currentIndex())
@@ -638,7 +692,9 @@ class DiscoveryPlugin:
 
     def make_enabled(self, enabled):
         self.search_line_edit.setEnabled(enabled)
-        self.search_line_edit.setPlaceholderText("Search for..." if enabled else "Search disabled: check configuration")
+        self.search_line_edit.setPlaceholderText(
+            "Search for..." if enabled else "Search disabled: check configuration"
+        )
 
     def show_marker(self, point):
         for m in [self.marker, self.marker2]:
