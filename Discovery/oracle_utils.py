@@ -1,5 +1,5 @@
-from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from qgis.core import QgsMessageLog, QgsSettings
+from qgis.PyQt.QtSql import QSqlDatabase, QSqlQuery
 
 from . import dbutils
 from .utils import is_number
@@ -72,9 +72,7 @@ def list_tables(db, schema):
             WHERE object_type IN ('TABLE', 'VIEW')
             AND NOT REGEXP_LIKE (object_name, '^DR\\$|^MDRT_|^MDXT_')
             AND owner = '%s'
-            ORDER BY object_name""" % dbutils._quote_str(
-        schema
-    )
+            ORDER BY object_name""" % dbutils._quote_str(schema)
     query = QSqlQuery(db)
     query.exec(query_text)
     names = []
@@ -145,11 +143,8 @@ def get_search_sql(
     )
 
     if echo_search_column:
-        query_column_selection_text = (
-            """"%s"
-                                      """
-            % search_column
-        )
+        query_column_selection_text = """"%s"
+                                      """ % search_column
         suggestion_string_seperator = ", "
     else:
         query_column_selection_text = """''"""
@@ -184,18 +179,13 @@ def get_search_sql(
         search_column,
     )
     query_text += """   LOWER('%s')
-	              """ % (
-        wildcarded_search_string
-    )
+                  """ % (wildcarded_search_string)
 
     limit = "{}".format(int(limit)) if is_number(limit) else "1000"
     query_text += """AND ROWNUM <= %s""" % (limit)
-    query_text += (
-        """ORDER BY
+    query_text += """ORDER BY
                             "%s"
-                      """
-        % search_column
-    )
+                      """ % search_column
     return query_text
 
 
