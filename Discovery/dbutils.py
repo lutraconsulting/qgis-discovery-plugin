@@ -13,6 +13,7 @@
 import re
 
 import psycopg2
+from psycopg2 import sql
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 
 from .utils import is_number
@@ -98,16 +99,6 @@ def get_postgres_conn_info(selected):
     return conn_info
 
 
-def _quote(identifier):
-    """quote identifier"""
-    return '"%s"' % identifier.replace('"', '""')
-
-
-def _quote_str(txt):
-    """make the string safe - replace ' with ''"""
-    return txt.replace("'", "''")
-
-
 def list_schemas(cursor):
     """Get list of schema names"""
     sql = "SELECT nspname FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname != 'information_schema'"
@@ -118,29 +109,24 @@ def list_schemas(cursor):
 
 
 def list_tables(cursor, schema):
-    sql = """SELECT pg_class.relname
+    query = sql.SQL("""SELECT pg_class.relname
                 FROM pg_class
                 JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
-                WHERE pg_class.relkind IN ('v', 'r', 'm') AND nspname = '%s'
-                ORDER BY nspname, relname""" % _quote_str(
-        schema
-    )
-    cursor.execute(sql)
+                WHERE pg_class.relkind IN ('v', 'r', 'm') AND nspname = {schema}
+                ORDER BY nspname, relname""").format(schema=sql.Literal(schema))
+    cursor.execute(query)
     names = map(lambda row: row[0], cursor.fetchall())
     return sorted(names)
 
 
 def list_columns(cursor, schema, table):
-    sql = """SELECT a.attname AS column_name
+    query = sql.SQL("""SELECT a.attname AS column_name
         FROM pg_class c
         JOIN pg_attribute a ON a.attrelid = c.oid
         JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
-        WHERE c.relname = '%s' AND nspname='%s' AND a.attnum > 0
-        ORDER BY a.attnum""" % (
-        _quote_str(table),
-        _quote_str(schema),
-    )
-    cursor.execute(sql)
+        WHERE c.relname = {table} AND nspname = {schema} AND a.attnum > 0
+        ORDER BY a.attnum""").format(table=sql.Literal(table), schema=sql.Literal(schema))
+    cursor.execute(query)
     names = map(lambda row: row[0], cursor.fetchall())
     return sorted(names)
 
@@ -193,11 +179,8 @@ def get_search_sql(
         geom_column,
     )
     if echo_search_column:
-        query_column_selection_text = (
-            """"%s"
-                                      """
-            % search_column
-        )
+        query_column_selection_text = """"%s"
+                                      """ % search_column
         suggestion_string_seperator = ", "
     else:
         query_column_selection_text = """''"""

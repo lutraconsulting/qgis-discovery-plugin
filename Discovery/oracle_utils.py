@@ -1,7 +1,6 @@
 from qgis.core import QgsMessageLog, QgsSettings
 from qgis.PyQt.QtSql import QSqlDatabase, QSqlQuery
 
-from . import dbutils
 from .utils import is_number
 
 
@@ -71,10 +70,12 @@ def list_tables(db, schema):
             FROM all_objects
             WHERE object_type IN ('TABLE', 'VIEW')
             AND NOT REGEXP_LIKE (object_name, '^DR\\$|^MDRT_|^MDXT_')
-            AND owner = '%s'
-            ORDER BY object_name""" % dbutils._quote_str(schema)
+            AND owner = :schema
+            ORDER BY object_name"""
     query = QSqlQuery(db)
-    query.exec(query_text)
+    query.prepare(query_text)
+    query.bindValue(":schema", schema)
+    query.exec()
     names = []
     while query.next():
         names.append(query.value(0))
@@ -84,22 +85,17 @@ def list_tables(db, schema):
 def list_columns(db, schema, table):
     query_text = """SELECT column_name
                 FROM all_tab_columns
-                WHERE table_name = '%s' AND owner ='%s'
-                ORDER BY column_id""" % (
-        dbutils._quote_str(table),
-        dbutils._quote_str(schema),
-    )
+                WHERE table_name = :table AND owner = :schema
+                ORDER BY column_id"""
     query = QSqlQuery(db)
-    query.exec(query_text)
+    query.prepare(query_text)
+    query.bindValue(":table", table)
+    query.bindValue(":schema", schema)
+    query.exec()
     names = []
     while query.next():
         names.append(query.value(0))
     return names
-
-
-def _quote(identifier):
-    """quote identifier"""
-    return '"%s"' % identifier.replace('"', '""')
 
 
 def get_search_sql(

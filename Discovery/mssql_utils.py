@@ -3,7 +3,6 @@ import sys
 from qgis.PyQt.QtSql import QSqlDatabase, QSqlQuery
 from qgis.core import QgsMessageLog, QgsSettings
 
-from . import dbutils
 from .utils import is_number
 
 
@@ -91,12 +90,12 @@ def list_tables(db):
 def list_columns(db, schema, table):
     query_text = """SELECT COLUMN_NAME
                 FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = '%s' AND TABLE_SCHEMA ='%s';""" % (
-        dbutils._quote_str(table),
-        dbutils._quote_str(schema),
-    )
+                WHERE TABLE_NAME = :table AND TABLE_SCHEMA = :schema;"""
     query = QSqlQuery(db)
-    query.exec(query_text)
+    query.prepare(query_text)
+    query.bindValue(":table", table)
+    query.bindValue(":schema", schema)
+    query.exec()
     names = []
     while query.next():
         names.append(query.value(0))

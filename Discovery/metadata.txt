@@ -3,7 +3,7 @@ name=Discovery
 qgisMinimumVersion=3.30
 qgisMaximumVersion=4.99
 description=Provides search / gazetteer functionality in QGIS using PostGIS, MSSQL and Geopackage databases
-version=2.7.0
+version=2.7.1
 author=Lutra Consulting
 email=info@lutraconsulting.co.uk
 homepage=http://www.lutraconsulting.co.uk/products/discovery/
@@ -20,6 +20,7 @@ about=The Discovery plugin adds search capability to QGIS. Its key features are:
 
 changelog=2.7.0
  - update to QGIS 4.0, mostly enums and import updates
+ - fix sql quoting to avoid banding issues
  <p>2.6.0
  - fixed issues: #95, #84
  - fixed handling features without geometry or with an unknown geometry type
